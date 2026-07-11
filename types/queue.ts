@@ -1,6 +1,11 @@
-export interface QueueItem {
+import type { Appointment } from "./appointment";
+
+export interface QueueItem extends Omit<Appointment, "doctor"> {
   id: number;
-  patientName: string;
-  room: string;
-  status: string;
+}
+
+export interface QueueResponse {
+  current: QueueItem | null;
+  waiting: QueueItem[];
+  finished: QueueItem[];
 }

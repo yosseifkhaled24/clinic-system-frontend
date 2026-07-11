@@ -7,6 +7,7 @@ import { Container } from "@/components/layout/Container";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { getErrorMessage } from "@/lib/errors";
 import { getDictionary } from "@/lib/i18n";
 
 export default function LoginPage() {
@@ -17,15 +18,19 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
+    setIsLoading(true);
     try {
       await login(email, password);
       router.push("/profile");
-    } catch {
-      setError(dict.auth.login.error);
+    } catch (error) {
+      setError(getErrorMessage(error, dict.auth.login.error));
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -56,7 +61,7 @@ export default function LoginPage() {
             />
           </div>
           {error ? <p className="text-sm text-rose-600">{error}</p> : null}
-          <Button type="submit" className="w-full">{dict.auth.login.submit}</Button>
+          <Button type="submit" className="w-full" disabled={isLoading}>{isLoading ? dict.dashboard.loading : dict.auth.login.submit}</Button>
         </form>
         <p className="mt-4 text-sm text-slate-600">
           {dict.auth.login.noAccount} <Link href="/register" className="font-semibold text-slate-900">{dict.auth.login.registerLink}</Link>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Container } from "@/components/layout/Container";
 import { Button } from "@/components/ui/Button";
 import { useLanguage } from "@/context/LanguageContext";
+import { getErrorMessage } from "@/lib/errors";
 import { getDictionary } from "@/lib/i18n";
 import { contactService } from "@/services/contact.service";
 
@@ -14,14 +15,19 @@ export default function ContactPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setIsLoading(true);
+    setStatus("");
     try {
       await contactService.send({ name, email, message });
       setStatus(dict.contact.success);
-    } catch {
-      setStatus(dict.contact.error);
+    } catch (error) {
+      setStatus(getErrorMessage(error, dict.contact.error));
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -44,7 +50,7 @@ export default function ContactPage() {
             <textarea value={message} onChange={(e) => setMessage(e.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" rows={4} />
           </div>
           {status ? <p className="text-sm text-slate-600">{status}</p> : null}
-          <Button type="submit">{dict.contact.submit}</Button>
+          <Button type="submit" disabled={isLoading}>{isLoading ? dict.dashboard.loading : dict.contact.submit}</Button>
         </form>
       </div>
     </Container>

@@ -1,16 +1,11 @@
 import api from "@/lib/axios";
 import type { Doctor } from "@/types/doctor";
-
-function unwrapResponse<T>(response: { data: T | { data: T } }) {
-  return (response?.data && typeof response.data === "object" && "data" in response.data && response.data.data !== undefined
-    ? (response.data as { data: T }).data
-    : response.data) as T;
-}
+import { unwrapCollection, unwrapResponse } from "./response";
 
 export const doctorsService = {
   async getAll() {
     const response = await api.get("/doctors");
-    return unwrapResponse<{ data: Doctor[] } | Doctor[]>(response);
+    return unwrapCollection<Doctor>(response);
   },
 
   async getById(id: number) {
@@ -18,12 +13,12 @@ export const doctorsService = {
     return unwrapResponse<Doctor>(response);
   },
 
-  async create(payload: Partial<Doctor>) {
+  async create(payload: Partial<Doctor> | FormData) {
     const response = await api.post("/doctors", payload);
     return unwrapResponse<Doctor>(response);
   },
 
-  async update(id: number, payload: Partial<Doctor>) {
+  async update(id: number, payload: Partial<Doctor> | FormData) {
     const response = await api.patch(`/doctors/${id}`, payload);
     return unwrapResponse<Doctor>(response);
   },

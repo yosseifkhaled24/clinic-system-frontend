@@ -1,92 +1,112 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { authService } from "@/services/auth.service";
+import type { AuthUser } from "@/types/auth";
 
 interface AuthContextValue {
-  user: { name?: string; email?: string } | null;
+  user: AuthUser | null;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (fullName: string, email: string, password: string) => Promise<void>;
+  register: (name: string, phone: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  updateUser: (userData: { name?: string; email?: string } | null) => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<{ name?: string; email?: string } | null>(null);
-
-  const normalizeUser = (response: unknown, fallbackName?: string, fallbackEmail?: string) => {
-    const payload = (response as { user?: { name?: string; email?: string } } | undefined)?.user ?? response;
-    const possibleUser = payload as { name?: string; full_name?: string; fullName?: string; email?: string } | undefined;
-    const name = possibleUser?.name || possibleUser?.full_name || possibleUser?.fullName || fallbackName;
-    const email = possibleUser?.email || fallbackEmail;
-
-    if (name || email) {
-      return { name, email };
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(() => {
+    if (typeof window === "undefined") {
+      return true;
     }
 
-    return null;
-  };
+    return Boolean(localStorage.getItem("token"));
+  });
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
+  const refreshUser = useCallback(async () => {
     const token = localStorage.getItem("token");
-    if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
+    if (!token) {
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const currentUser = await authService.getUser();
+      setUser(currentUser);
+    } catch {
+      localStorage.removeItem("token");
+      setUser(null);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const login = async (email: string, password: string) => {
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    let active = true;
+
+    authService.getUser()
+      .then((currentUser) => {
+        if (active) {
+          setUser(currentUser);
+        }
+      })
+      .catch(() => {
+        localStorage.removeItem("token");
+        if (active) {
+          setUser(null);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const login = useCallback(async (email: string, password: string) => {
     const response = await authService.login({ email, password });
-    const token = (response as { token?: string }).token;
-    const userData = normalizeUser(response, undefined, email);
-    if (token) {
-      localStorage.setItem("token", token);
-    }
-    if (userData) {
-      localStorage.setItem("user", JSON.stringify(userData));
-      setUser(userData);
-    }
-  };
+    localStorage.setItem("token", response.token);
+    const currentUser = await authService.getUser();
+    setUser(currentUser);
+  }, []);
 
-  const register = async (fullName: string, email: string, password: string) => {
-    const response = await authService.register({ fullName, email, password });
-    const token = (response as { token?: string }).token;
-    const userData = normalizeUser(response, fullName, email);
-    if (token) {
-      localStorage.setItem("token", token);
-    }
-    if (userData) {
-      localStorage.setItem("user", JSON.stringify(userData));
-      setUser(userData);
-    }
-  };
+  const register = useCallback(async (name: string, phone: string, email: string, password: string) => {
+    const response = await authService.register({
+      name,
+      phone,
+      email,
+      password,
+      password_confirmation: password,
+    });
+    localStorage.setItem("token", response.token);
+    const currentUser = await authService.getUser();
+    setUser(currentUser);
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await authService.logout();
     } catch {
-      // Ignore logout errors and clear local state.
+      // Local credentials are still cleared after an expired-token logout.
     }
     localStorage.removeItem("token");
-    localStorage.removeItem("user");
     setUser(null);
-  };
+  }, []);
 
-  const updateUser = (userData: { name?: string; email?: string } | null) => {
-    setUser((currentUser) => {
-      const nextUser = userData ? { ...(currentUser ?? {}), ...userData } : null;
-      if (nextUser) {
-        localStorage.setItem("user", JSON.stringify(nextUser));
-      } else {
-        localStorage.removeItem("user");
-      }
-      return nextUser;
-    });
-  };
-
-  const value = useMemo(() => ({ user, login, register, logout, updateUser }), [user]);
+  const value = useMemo(
+    () => ({ user, isLoading, login, register, logout, refreshUser }),
+    [isLoading, login, logout, refreshUser, register, user],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
