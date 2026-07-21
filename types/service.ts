@@ -1,9 +1,10 @@
-export interface ServiceItem {
+export interface Service {
   id: number;
   name: string;
-  description?: string | null;
-  price?: string | number | null;
-  image_url?: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
+  description: string;
+  price: number | null;
+  image_url?: string |null;
+
+  created_at?: string;
+  updated_at?: string;
 }

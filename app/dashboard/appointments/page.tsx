@@ -1,148 +1,383 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { useLanguage } from "@/context/LanguageContext";
+import { Button } from "@/components/ui/Button";
+
+import AppointmentTable from "@/components/dashboard/appointments/AppointmentTable";
+import AppointmentForm from "@/components/dashboard/appointments/AppointmentForm";
+import DeleteAppointmentDialog from "@/components/dashboard/appointments/DeleteAppointmentDialog";
+import SearchAppointment from "@/components/dashboard/appointments/SearchAppointment";
+
 import { useAuth } from "@/context/AuthContext";
-import { getErrorMessage } from "@/lib/errors";
-import { getDictionary } from "@/lib/i18n";
+import { useLanguage } from "@/context/LanguageContext";
+
 import { appointmentsService } from "@/services/appointments.service";
-import type { Appointment } from "@/types/appointment";
+import { doctorsService } from "@/services/doctors.service";
+import { patientsService } from "@/services/patients.service";
+import { servicesService } from "@/services/services.service";
+import { exportAppointments } from "@/services/export.service";
+import type { Service } from "@/types/service";
+
+import { getDictionary } from "@/lib/i18n";
+import { getErrorMessage } from "@/lib/errors";
+
+import type {
+  Appointment,
+  AppointmentCreatePayload,
+} from "@/types/appointment";
+import type { Doctor } from "@/types/doctor";
+import type { Patient } from "@/types/patient";
 
 export default function DashboardAppointmentsPage() {
   const { language } = useLanguage();
   const { user } = useAuth();
+
   const dict = getDictionary(language);
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [error, setError] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+
+  const [showForm, setShowForm] = useState(false);
+
+  const [editingAppointment, setEditingAppointment] =
+    useState<Appointment | null>(null);
+
+  const [appointmentToDelete, setAppointmentToDelete] =
+    useState<Appointment | null>(null);
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const isAdmin = user?.role === "admin";
 
   useEffect(() => {
-    setIsAdmin(user?.role === "admin");
-    loadAppointments();
-  }, [user]);
-
-  const loadAppointments = async () => {
+    loadData();
+  }, []);
+    async function loadData() {
     try {
       setIsLoading(true);
-      const response = await appointmentsService.getAll();
-      setAppointments(response);
+
+     const [
+       appointmentsData,
+       doctorsData,
+       patientsData,
+       servicesData,
+      ] = await Promise.all([
+        appointmentsService.getAll(),
+        doctorsService.getAll(),
+        patientsService.getAll(),
+        servicesService.getAll(),
+      ]);
+
+      setAppointments(appointmentsData);
+      setDoctors(doctorsData);
+      setPatients(patientsData);
+      setServices(servicesData);
+
       setError("");
     } catch (err) {
-      setError(getErrorMessage(err, "Unable to load appointments."));
-      setAppointments([]);
+      setError(
+        getErrorMessage(
+          err,
+          "Failed to load appointments."
+        )
+      );
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
-  const selectedAppointment = appointments.find((a) => a.id === selectedId);
+  const filteredAppointments = useMemo(() => {
+    let data = appointments;
 
-  const statusColor: Record<string, string> = {
-    pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-100",
-    confirmed: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100",
-    completed: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-100",
-    cancelled: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-100",
-  };
+    if (statusFilter !== "all") {
+      data = data.filter(
+        (appointment) =>
+          appointment.status === statusFilter
+      );
+    }
 
-  return (
-    <DashboardLayout title={dict.dashboardPages.appointments.title} description={dict.dashboardPages.appointments.description}>
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-1">
-          <h3 className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100">
-            Appointments ({appointments.length})
-          </h3>
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {isLoading ? (
-              <p className="text-sm text-slate-600">{dict.dashboard.loading}</p>
-            ) : error && !isAdmin ? (
-              <p className="text-sm text-rose-600">{error}</p>
-            ) : appointments.length === 0 ? (
-              <p className="text-sm text-slate-600">No appointments.</p>
-            ) : (
-              appointments.map((apt) => (
-                <button
-                  key={apt.id}
-                  onClick={() => setSelectedId(apt.id)}
-                  className={`w-full rounded-xl p-3 text-left text-sm transition ${
-                    selectedId === apt.id
-                      ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
-                      : "border border-slate-200 text-slate-900 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900"
-                  }`}
-                >
-                  <p className="font-medium line-clamp-1">{apt.doctor?.name || "Doctor"}</p>
-                  <p className="text-xs opacity-75">{apt.appointment_date}</p>
-                </button>
-              ))
-            )}
-          </div>
+    if (!search.trim()) return data;
+
+    const q = search.toLowerCase();
+
+    return data.filter((appointment) => {
+      return (
+        appointment.patient.name
+          .toLowerCase()
+          .includes(q) ||
+        appointment.doctor.name
+          .toLowerCase()
+          .includes(q) ||
+        appointment.status
+          .toLowerCase()
+          .includes(q)
+      );
+    });
+  }, [appointments, search, statusFilter]);
+
+  function openCreateForm() {
+    setEditingAppointment(null);
+    setShowForm(true);
+  }
+
+  function openEditForm(
+    appointment: Appointment
+  ) {
+    setEditingAppointment(appointment);
+    setShowForm(true);
+  }
+
+  function closeForm() {
+    setEditingAppointment(null);
+    setShowForm(false);
+  }
+
+  async function handleSubmit(
+    payload: AppointmentCreatePayload
+  ) {
+    try {
+      setIsSubmitting(true);
+      setError("");
+
+      if (editingAppointment) {
+        await appointmentsService.update(
+          editingAppointment.id,
+          payload
+        );
+      } else {
+        await appointmentsService.create(
+          payload
+        );
+      }
+
+      closeForm();
+
+      await loadData();
+    } catch (err) {
+      setError(
+        getErrorMessage(
+          err,
+          "Failed to save appointment."
+        )
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  function askDelete(
+    appointment: Appointment
+  ) {
+    setAppointmentToDelete(appointment);
+  }
+
+  function closeDeleteDialog() {
+    setAppointmentToDelete(null);
+  }
+
+  async function confirmDelete() {
+    if (!appointmentToDelete) return;
+
+    try {
+      await appointmentsService.delete(
+        appointmentToDelete.id
+      );
+
+      await loadData();
+
+      closeDeleteDialog();
+    } catch (err) {
+      setError(
+        getErrorMessage(
+          err,
+          "Failed to cancel appointment."
+        )
+      );
+    }
+  } 
+     return (
+    <DashboardLayout
+      title={dict.dashboardPages.appointments.title}
+      description={dict.dashboardPages.appointments.description}
+    >
+      {error && (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+          {error}
         </div>
+      )}
 
-        <div className="lg:col-span-2">
-          {selectedAppointment ? (
-            <div className="rounded-2xl border border-slate-200 p-6 dark:border-slate-700">
-              <div className="mb-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                    {selectedAppointment.doctor?.name || "Doctor"}
-                  </h3>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${
-                      statusColor[selectedAppointment.status] || "bg-slate-100 text-slate-700"
-                    }`}
-                  >
-                    {selectedAppointment.status}
-                  </span>
-                </div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  {selectedAppointment.doctor?.specialty || ""}
-                </p>
-              </div>
+      {showForm ? (
+        <div className="mx-auto max-w-7xl">
 
-              <div className="space-y-3 border-t border-slate-200 pt-4 dark:border-slate-700">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
-                    Date & Time
-                  </p>
-                  <p className="mt-1 text-sm text-slate-900 dark:text-slate-100">
-                    {selectedAppointment.appointment_date}
-                  </p>
-                </div>
+          <div className="mb-8 flex items-center justify-between">
 
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
-                    Patient
-                  </p>
-                  <p className="mt-1 text-sm text-slate-900 dark:text-slate-100">
-                    {selectedAppointment.patient?.name || "N/A"}
-                  </p>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {selectedAppointment.patient?.email || ""}
-                  </p>
-                </div>
+            <div>
 
-                {selectedAppointment.notes && (
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
-                      Notes
-                    </p>
-                    <p className="mt-1 text-sm text-slate-900 dark:text-slate-100">
-                      {selectedAppointment.notes}
-                    </p>
-                  </div>
-                )}
-              </div>
+              <h2 className="text-3xl font-bold text-slate-900">
+                {editingAppointment
+                  ? "Edit Appointment"
+                  : "Add Appointment"}
+              </h2>
+
+              <p className="mt-2 text-slate-500">
+                {editingAppointment
+                  ? "Update appointment information."
+                  : "Create a new appointment."}
+              </p>
+
+            </div>
+
+            <Button
+              variant="ghost"
+              onClick={closeForm}
+            >
+              ← Back
+            </Button>
+
+          </div>
+
+          <AppointmentForm
+            doctors={doctors}
+            patients={patients}
+            services={services}
+            initialData={editingAppointment}
+            isSubmitting={isSubmitting}
+            onSubmit={handleSubmit}
+            onCancel={closeForm}
+          />
+
+        </div>
+      ) : (
+        <>
+
+          <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+
+            <div>
+
+              <h2 className="text-3xl font-bold text-slate-900">
+                Appointments
+              </h2>
+
+              <p className="mt-2 text-slate-500">
+                Manage all clinic appointments.
+              </p>
+
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+
+         <Button
+            variant="ghost"
+           onClick={exportAppointments}
+         >
+            📊 Export Excel
+         </Button>
+
+              {isAdmin && (
+                <Button onClick={openCreateForm}>
+                  + Add Appointment
+                </Button>
+              )}
+
+            </div>
+
+          </div>
+
+          <div className="mb-6 grid gap-6 lg:grid-cols-4">
+
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="text-sm text-slate-500">
+                Total Appointments
+              </p>
+
+              <h3 className="mt-3 text-4xl font-bold text-slate-900">
+                {appointments.length}
+              </h3>
+            </div>
+
+            <div className="lg:col-span-2">
+              <SearchAppointment
+                value={search}
+                onChange={setSearch}
+              />
+            </div>
+
+            <div>
+
+              <select
+                value={statusFilter}
+                onChange={(e) =>
+                  setStatusFilter(e.target.value)
+                }
+                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-sky-500"
+              >
+                <option value="all">
+                  All Status
+                </option>
+
+                <option value="pending">
+                  Pending
+                </option>
+
+                <option value="arrived">
+                  Arrived
+                </option>
+
+                <option value="in_progress">
+                  In Progress
+                </option>
+
+                <option value="completed">
+                  Completed
+                </option>
+
+                <option value="cancelled">
+                  Cancelled
+                </option>
+
+                <option value="no_show">
+                  No Show
+                </option>
+
+              </select>
+
+            </div>
+
+          </div>
+
+          {isLoading ? (
+            <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center text-slate-500 shadow-sm">
+              Loading appointments...
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center dark:border-slate-700">
-              <p className="text-sm text-slate-600 dark:text-slate-300">Select an appointment to view details</p>
-            </div>
+            <AppointmentTable
+              appointments={filteredAppointments}
+              onEdit={openEditForm}
+              onCancel={askDelete}
+            />
           )}
-        </div>
-      </div>
+
+        </>
+      )}
+
+      <DeleteAppointmentDialog
+        open={appointmentToDelete !== null}
+        patientName={
+          appointmentToDelete?.patient.name
+        }
+        onCancel={closeDeleteDialog}
+        onConfirm={confirmDelete}
+      />
+
     </DashboardLayout>
   );
 }

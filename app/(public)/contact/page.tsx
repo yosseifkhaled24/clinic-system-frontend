@@ -1,58 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { Container } from "@/components/layout/Container";
-import { Button } from "@/components/ui/Button";
-import { useLanguage } from "@/context/LanguageContext";
-import { getErrorMessage } from "@/lib/errors";
-import { getDictionary } from "@/lib/i18n";
-import { contactService } from "@/services/contact.service";
+import ContactHero from "@/components/contact/ContactHero";
+import ContactForm from "@/components/contact/ContactForm";
 
 export default function ContactPage() {
-  const { language } = useLanguage();
-  const dict = getDictionary(language);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [status, setStatus] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setIsLoading(true);
-    setStatus("");
-    try {
-      await contactService.send({ name, email, message });
-      setStatus(dict.contact.success);
-    } catch (error) {
-      setStatus(getErrorMessage(error, dict.contact.error));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <Container className="py-16">
-      <div className="mx-auto max-w-2xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h1 className="text-3xl font-semibold text-slate-900">{dict.contact.title}</h1>
-        <p className="mt-2 text-slate-600">{dict.contact.description}</p>
-        <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">{dict.contact.name}</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">{dict.contact.email}</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">{dict.contact.message}</label>
-            <textarea value={message} onChange={(e) => setMessage(e.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" rows={4} />
-          </div>
-          {status ? <p className="text-sm text-slate-600">{status}</p> : null}
-          <Button type="submit" disabled={isLoading}>{isLoading ? dict.dashboard.loading : dict.contact.submit}</Button>
-        </form>
-      </div>
-    </Container>
+    <>
+      <ContactHero />
+      <ContactForm />
+    </>
   );
 }

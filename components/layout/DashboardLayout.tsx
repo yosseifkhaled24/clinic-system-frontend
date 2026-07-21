@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useAuth } from "@/context/AuthContext";
+import DashboardNavbar from "@/components/dashboard/DashboardNavbar";
 
 type DashboardLayoutProps = {
   title: string;
@@ -12,11 +13,10 @@ type DashboardLayoutProps = {
 };
 
 export function DashboardLayout({
-  title,
-  description,
   children,
 }: DashboardLayoutProps) {
   const router = useRouter();
+
   const { user, isLoading } = useAuth();
 
   useEffect(() => {
@@ -34,8 +34,8 @@ export function DashboardLayout({
 
   if (isLoading) {
     return (
-      <div className="w-full px-8 py-8">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex min-h-screen items-center justify-center bg-slate-100">
+        <div className="rounded-2xl bg-white px-8 py-6 shadow">
           Loading...
         </div>
       </div>
@@ -47,23 +47,27 @@ export function DashboardLayout({
   }
 
   return (
-    <div className="w-full bg-slate-50 min-h-screen">
-      <div className="mx-auto max-w-[1700px] px-6 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-slate-900">{title}</h1>
+    <div className="min-h-screen bg-slate-100">
+      <div className="mx-auto max-w-[1800px] px-6 py-6">
 
-          {description && (
-            <p className="mt-2 text-slate-500">{description}</p>
-          )}
-        </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
           <Sidebar />
 
-          <main className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-            {children}
-          </main>
+          <div className="flex flex-col gap-6">
+
+            <DashboardNavbar />
+
+            <main className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+
+              {children}
+
+            </main>
+
+          </div>
+
         </div>
+
       </div>
     </div>
   );

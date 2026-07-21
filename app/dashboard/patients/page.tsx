@@ -1,246 +1,228 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { useLanguage } from "@/context/LanguageContext";
+
+import PatientTable from "@/components/dashboard/Patient/PatientTable";
+import PatientForm from "@/components/dashboard/Patient/PatientForm";
+import DeletePatientDialog from "@/components/dashboard/Patient/DeletePatientDialog";
+import SearchPatient from "@/components/dashboard/Patient/SearchPatient";
+
 import { useAuth } from "@/context/AuthContext";
-import { getErrorMessage } from "@/lib/errors";
-import { getDictionary } from "@/lib/i18n";
+import { useLanguage } from "@/context/LanguageContext";
+
 import { patientsService } from "@/services/patients.service";
+
+import { getDictionary } from "@/lib/i18n";
+import { getErrorMessage } from "@/lib/errors";
+
 import type { Patient } from "@/types/patient";
 
 export default function DashboardPatientsPage() {
   const { language } = useLanguage();
   const { user } = useAuth();
-  const router = useRouter();
+
   const dict = getDictionary(language);
 
   const [patients, setPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [error, setError] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    gender: "",
-    date_of_birth: "",
-    address: "",
-  });
+
+  const [editingPatient, setEditingPatient] =
+    useState<Patient | null>(null);
+
+  const [patientToDelete, setPatientToDelete] =
+    useState<Patient | null>(null);
+
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
-    setIsAdmin(user?.role === "admin");
     loadPatients();
-  }, [user]);
+  }, []);
 
-  const loadPatients = async () => {
+  async function loadPatients() {
     try {
       setIsLoading(true);
+
       const response = await patientsService.getAll();
+
       setPatients(response);
+
       setError("");
     } catch (err) {
-      setError(getErrorMessage(err, "Unable to load patients."));
-      setPatients([]);
+      setError(
+        getErrorMessage(err, "Unable to load patients.")
+      );
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
-  const handleEdit = (patient: Patient) => {
-    setEditingId(patient.id);
-    setFormData({
-      name: patient.name || "",
-      email: patient.email || "",
-      phone: patient.phone || "",
-      gender: patient.gender || "",
-      date_of_birth: patient.date_of_birth || "",
-      address: patient.address || "",
-    });
+  const filteredPatients = useMemo(() => {
+    if (!search.trim()) return patients;
+
+    const q = search.toLowerCase();
+
+    return patients.filter(
+      (patient) =>
+        patient.name.toLowerCase().includes(q) ||
+        patient.phone.toLowerCase().includes(q) ||
+        (patient.email ?? "")
+          .toLowerCase()
+          .includes(q)
+    );
+  }, [patients, search]);
+
+  function openEditForm(patient: Patient) {
+    setEditingPatient(patient);
     setShowForm(true);
-  };
+  }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this patient?")) return;
+  function closeForm() {
+    setEditingPatient(null);
+    setShowForm(false);
+  }
 
-    try {
-      await patientsService.delete(id);
-      setPatients(patients.filter((p) => p.id !== id));
-      setError("");
-    } catch (err) {
-      setError(getErrorMessage(err, "Unable to delete patient."));
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  async function handleSubmit(
+    patient: Partial<Patient>
+  ) {
+    if (!editingPatient) return;
 
     try {
-      const payload = {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        gender: (formData.gender as "male" | "female" | null) || null,
-        date_of_birth: formData.date_of_birth,
-        address: formData.address,
-      };
+      setIsSubmitting(true);
 
-      if (editingId) {
-        await patientsService.update(editingId, payload);
-        setPatients(
-          patients.map((p) =>
-            p.id === editingId ? { ...p, ...payload } : p
-          )
-        );
-      } else {
-        const newPatient = await patientsService.create(payload);
-        setPatients([...patients, newPatient]);
-      }
+      await patientsService.update(
+        editingPatient.id,
+        patient
+      );
 
-      setShowForm(false);
-      setEditingId(null);
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        gender: "",
-        date_of_birth: "",
-        address: "",
-      });
-      setError("");
+      closeForm();
+
+      await loadPatients();
     } catch (err) {
-      setError(getErrorMessage(err, "Unable to save patient."));
+      setError(
+        getErrorMessage(
+          err,
+          "Failed to update patient."
+        )
+      );
+    } finally {
+      setIsSubmitting(false);
     }
-  };
+  }
 
+  function askDelete(patient: Patient) {
+    setPatientToDelete(patient);
+  }
+
+  function closeDeleteDialog() {
+    setPatientToDelete(null);
+  }
+
+  async function confirmDelete() {
+    if (!patientToDelete) return;
+
+    try {
+      await patientsService.delete(
+        patientToDelete.id
+      );
+
+      setPatients((prev) =>
+        prev.filter(
+          (p) => p.id !== patientToDelete.id
+        )
+      );
+
+      closeDeleteDialog();
+    } catch (err) {
+      setError(
+        getErrorMessage(
+          err,
+          "Failed to delete patient."
+        )
+      );
+    }
+  }
   return (
-    <DashboardLayout title={dict.dashboardPages.patients.title} description={dict.dashboardPages.patients.description}>
-      <div className="space-y-6">
-        {isAdmin && (
-          <button
-            onClick={() => {
-              setShowForm(!showForm);
-              setEditingId(null);
-              setFormData({
-                name: "",
-                email: "",
-                phone: "",
-                gender: "",
-                date_of_birth: "",
-                address: "",
-              });
-            }}
-            className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
-          >
-            {showForm ? "Cancel" : "+ Add Patient"}
-          </button>
-        )}
-
-        {showForm && isAdmin && (
-          <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-200 p-6 dark:border-slate-700">
-            <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {editingId ? "Edit Patient" : "Add Patient"}
-            </h3>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <input
-                type="text"
-                placeholder="Name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-                required
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-              />
-              <input
-                type="tel"
-                placeholder="Phone"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-              />
-              <select
-                value={formData.gender}
-                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-              >
-                <option value="">Select Gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-              </select>
-              <input
-                type="date"
-                value={formData.date_of_birth}
-                onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-              />
-              <input
-                type="text"
-                placeholder="Address"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
-            >
-              {editingId ? "Update Patient" : "Add Patient"}
-            </button>
-          </form>
-        )}
-
-        {error && <p className="text-sm text-rose-600">{error}</p>}
-
-        <div className="space-y-3">
-          {isLoading ? (
-            <p className="text-sm text-slate-600">{dict.dashboard.loading}</p>
-          ) : patients.length === 0 ? (
-            <p className="text-sm text-slate-600">No patients found.</p>
-          ) : (
-            patients.map((patient) => (
-              <div
-                key={patient.id}
-                className="flex items-center justify-between rounded-2xl border border-slate-200 p-4 dark:border-slate-700"
-              >
-                <div className="flex-1">
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">{patient.name}</h3>
-                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{patient.email}</p>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">{patient.phone}</p>
-                </div>
-                {isAdmin && (
-                  <div className="ml-4 flex gap-2">
-                    <button
-                      onClick={() => handleEdit(patient)}
-                      className="rounded px-3 py-1 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(patient.id)}
-                      className="rounded px-3 py-1 text-sm font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
+  <DashboardLayout
+    title="Patients"
+    description="Manage clinic patients"
+  >
+    {error && (
+      <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+        {error}
       </div>
-    </DashboardLayout>
-  );
+    )}
+
+    {showForm ? (
+      <>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            
+            <p className="mt-2 text-slate-500">
+              Update patient information.
+            </p>
+          </div>
+
+          <button
+            onClick={closeForm}
+            className="rounded-xl border border-slate-300 bg-white px-5 py-3 font-medium transition hover:bg-slate-100"
+          >
+            ← Back
+          </button>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+          <PatientForm
+            initialData={editingPatient}
+            isSubmitting={isSubmitting}
+            onSubmit={handleSubmit}
+            onCancel={closeForm}
+          />
+        </div>
+      </>
+    ) : (
+      <>
+        <div className="mb-6">
+          <SearchPatient
+            value={search}
+            onChange={setSearch}
+          />
+        </div>
+
+        <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="text-sm text-slate-500">
+            Total Patients
+          </div>
+
+          <div className="mt-2 text-3xl font-bold text-slate-900">
+            {patients.length}
+          </div>
+        </div>
+
+        {isLoading ? (
+          <p>Loading...</p>
+        ) : (
+          <PatientTable
+            patients={filteredPatients}
+            onEdit={openEditForm}
+            onDelete={askDelete}
+          />
+        )}
+      </>
+    )}
+
+    <DeletePatientDialog
+      open={patientToDelete !== null}
+      patientName={patientToDelete?.name}
+      onCancel={closeDeleteDialog}
+      onConfirm={confirmDelete}
+    />
+  </DashboardLayout>
+);
 }

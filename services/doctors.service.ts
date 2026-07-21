@@ -18,10 +18,15 @@ export const doctorsService = {
     return unwrapResponse<Doctor>(response);
   },
 
-  async update(id: number, payload: Partial<Doctor> | FormData) {
-    const response = await api.patch(`/doctors/${id}`, payload);
-    return unwrapResponse<Doctor>(response);
-  },
+async update(id: number, payload: Partial<Doctor> | FormData) {
+  if (payload instanceof FormData) {
+    payload.append("_method", "PATCH");
+  }
+
+  const response = await api.post(`/doctors/${id}`, payload);
+
+  return unwrapResponse<Doctor>(response);
+},
 
   async delete(id: number) {
     const response = await api.delete(`/doctors/${id}`);

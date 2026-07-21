@@ -1,68 +1,233 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+
+import QueueDoctorSelect from "@/components/dashboard/queue/QueueDoctorSelect";
+import QueueCurrent from "@/components/dashboard/queue/QueueCurrent";
+import QueueWaiting from "@/components/dashboard/queue/QueueWaiting";
+import QueueFinished from "@/components/dashboard/queue/QueueFinished";
+
 import { useLanguage } from "@/context/LanguageContext";
-import { getErrorMessage } from "@/lib/errors";
-import { getDictionary } from "@/lib/i18n";
+
 import { doctorsService } from "@/services/doctors.service";
 import { queueService } from "@/services/queue.service";
-import type { QueueResponse } from "@/types/queue";
 
-const emptyQueue: QueueResponse = {
-  current: null,
-  waiting: [],
-  finished: [],
-};
+import { getDictionary } from "@/lib/i18n";
+import { getErrorMessage } from "@/lib/errors";
+
+import type { Doctor } from "@/types/doctor";
+import type { QueueResponse } from "@/types/queue";
 
 export default function DashboardQueuePage() {
   const { language } = useLanguage();
+
   const dict = getDictionary(language);
-  const [queue, setQueue] = useState<QueueResponse>(emptyQueue);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
+
+  const [doctors, setDoctors] = useState<
+    Doctor[]
+  >([]);
+
+  const [
+    selectedDoctor,
+    setSelectedDoctor,
+  ] = useState<number | "">("");
+
+  const [queue, setQueue] =
+    useState<QueueResponse>({
+      current: null,
+      waiting: [],
+      finished: [],
+    });
+
+  const [isLoading, setIsLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
 
   useEffect(() => {
-    doctorsService.getAll().then((doctors) => {
-      const firstDoctor = doctors[0];
-      if (!firstDoctor) {
-        setQueue(emptyQueue);
-        return;
-      }
-
-      queueService.getToday(firstDoctor.id).then(setQueue).catch((error) => {
-        setError(getErrorMessage(error, "Unable to load queue."));
-        setQueue(emptyQueue);
-      });
-    }).catch((error) => {
-      setError(getErrorMessage(error, "Unable to load queue."));
-      setQueue(emptyQueue);
-    }).finally(() => setIsLoading(false));
+    loadDoctors();
   }, []);
 
+  useEffect(() => {
+    if (!selectedDoctor) return;
+
+    loadQueue(selectedDoctor);
+  }, [selectedDoctor]);
+
+  async function loadDoctors() {
+    try {
+      setIsLoading(true);
+
+      const response =
+        await doctorsService.getAll();
+
+      setDoctors(response);
+
+      setError("");
+    } catch (err) {
+      setError(
+        getErrorMessage(
+          err,
+          "Failed to load doctors."
+        )
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function loadQueue(
+    doctorId: number
+  ) {
+    try {
+      const response =
+        await queueService.today(
+          doctorId
+        );
+
+      setQueue(response);
+
+      setError("");
+    } catch (err) {
+      setError(
+        getErrorMessage(
+          err,
+          "Failed to load queue."
+        )
+      );
+    }
+  }
+
   return (
-    <DashboardLayout title={dict.dashboardPages.queue.title} description={dict.dashboardPages.queue.description}>
-      <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-slate-600">
-        {isLoading ? <p className="mb-4 text-sm">{dict.dashboard.loading}</p> : null}
-        {!isLoading && error ? <p className="mb-4 text-sm text-rose-600">{error}</p> : null}
-        {!isLoading && !error && !queue.current && queue.waiting.length === 0 && queue.finished.length === 0 ? (
-          <p className="mb-4 text-sm">No queue items found.</p>
-        ) : null}
-        <div className="grid gap-4 md:grid-cols-3">
-          <div>
-            <h3 className="font-semibold text-slate-900">Current</h3>
-            <p className="mt-2 text-sm">{queue.current?.patient?.name || "No current patient"}</p>
-          </div>
-          <div>
-            <h3 className="font-semibold text-slate-900">Waiting</h3>
-            <p className="mt-2 text-sm">{queue.waiting.length}</p>
-          </div>
-          <div>
-            <h3 className="font-semibold text-slate-900">Finished</h3>
-            <p className="mt-2 text-sm">{queue.finished.length}</p>
-          </div>
+    <DashboardLayout
+      title={dict.dashboardPages.queue.title}
+      description={
+        dict.dashboardPages.queue.description
+      }
+    >
+            {error && (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+          {error}
         </div>
-      </div>
+      )}
+
+      {isLoading ? (
+        <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center text-slate-500 shadow-sm">
+          Loading queue...
+        </div>
+      ) : (
+        <div className="space-y-8">
+
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+
+            <div>
+
+              <h2 className="text-3xl font-bold text-slate-900">
+                Queue Management
+              </h2>
+
+              <p className="mt-2 text-slate-500">
+                Manage today's patient queue for every doctor.
+              </p>
+
+            </div>
+
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-3">
+
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+
+              <p className="text-sm text-slate-500">
+                Waiting Patients
+              </p>
+
+              <h3 className="mt-3 text-4xl font-bold text-yellow-600">
+                {queue.waiting.length}
+              </h3>
+
+            </div>
+
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+
+              <p className="text-sm text-slate-500">
+                Current Patient
+              </p>
+
+              <h3 className="mt-3 text-4xl font-bold text-green-600">
+                {queue.current ? 1 : 0}
+              </h3>
+
+            </div>
+
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+
+              <p className="text-sm text-slate-500">
+                Finished Today
+              </p>
+
+              <h3 className="mt-3 text-4xl font-bold text-sky-600">
+                {queue.finished.length}
+              </h3>
+
+            </div>
+
+          </div>
+
+          <QueueDoctorSelect
+            doctors={doctors}
+            value={selectedDoctor}
+            onChange={setSelectedDoctor}
+          />
+
+          {selectedDoctor && (
+            <>
+                          <QueueCurrent
+                patient={queue.current}
+              />
+
+              <div className="grid gap-8 lg:grid-cols-2">
+
+                <QueueWaiting
+                  patients={queue.waiting}
+                />
+
+                <QueueFinished
+                  patients={queue.finished}
+                />
+
+              </div>
+
+            </>
+          )}
+
+          {!selectedDoctor && (
+
+            <div className="rounded-3xl border-2 border-dashed border-slate-300 bg-white p-16 text-center shadow-sm">
+
+              <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-sky-100 text-5xl">
+                👨‍⚕️
+              </div>
+
+              <h2 className="mt-8 text-2xl font-bold text-slate-900">
+                Select a Doctor
+              </h2>
+
+              <p className="mt-3 text-slate-500">
+                Choose a doctor above to view today's queue,
+                current patient, waiting list and finished patients.
+              </p>
+
+            </div>
+
+          )}
+
+        </div>
+      )}
+
     </DashboardLayout>
   );
 }

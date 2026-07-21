@@ -5,11 +5,11 @@ import { Container } from "@/components/layout/Container";
 import { doctorsService } from "@/services/doctors.service";
 import { servicesService } from "@/services/services.service";
 import type { Doctor } from "@/types/doctor";
-import type { ServiceItem } from "@/types/service";
+import type { Service } from "@/types/service";
 
 export default function ImageDebugPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 

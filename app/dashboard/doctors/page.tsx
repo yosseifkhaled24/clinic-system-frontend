@@ -1,216 +1,280 @@
-  "use client";
+"use client";
 
-  import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-  import { DashboardLayout } from "@/components/layout/DashboardLayout";
-  import { Button } from "@/components/ui/Button";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { Button } from "@/components/ui/Button";
 
-  import DoctorTable from "@/components/dashboard/doctors/DoctorTable";
-  import DoctorModal from "@/components/dashboard/doctors/DoctorModal";
-  import DeleteDoctorDialog from "@/components/dashboard/doctors/DeleteDoctorDialog";
-  import SearchDoctor from "@/components/dashboard/doctors/SearchDoctor";
+import DoctorTable from "@/components/dashboard/doctors/DoctorTable";
+import DoctorForm from "@/components/dashboard/doctors/DoctorForm";
+import DeleteDoctorDialog from "@/components/dashboard/doctors/DeleteDoctorDialog";
+import SearchDoctor from "@/components/dashboard/doctors/SearchDoctor";
 
-  import { useAuth } from "@/context/AuthContext";
-  import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 
-  import { doctorsService } from "@/services/doctors.service";
+import { doctorsService } from "@/services/doctors.service";
 
-  import { getDictionary } from "@/lib/i18n";
-  import { getErrorMessage } from "@/lib/errors";
+import { getDictionary } from "@/lib/i18n";
+import { getErrorMessage } from "@/lib/errors";
 
-  import type { Doctor } from "@/types/doctor";
+import type { Doctor } from "@/types/doctor";
 
-  export default function DashboardDoctorsPage() {
-    const { language } = useLanguage();
-    const { user } = useAuth();
+export default function DashboardDoctorsPage() {
+  const { language } = useLanguage();
+  const { user } = useAuth();
 
-    const dict = getDictionary(language);
+  const dict = getDictionary(language);
 
-    const [doctors, setDoctors] = useState<Doctor[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const [error, setError] = useState("");
+  const [error, setError] = useState("");
 
-    const [showModal, setShowModal] = useState(false);
+  const [showForm, setShowForm] = useState(false);
 
-    const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
+  const [editingDoctor, setEditingDoctor] =
+    useState<Doctor | null>(null);
 
-    const [doctorToDelete, setDoctorToDelete] =
-      useState<Doctor | null>(null);
+  const [doctorToDelete, setDoctorToDelete] =
+    useState<Doctor | null>(null);
 
-    const [search, setSearch] = useState("");
+  const [search, setSearch] = useState("");
 
-    const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin";
 
-    useEffect(() => {
-      loadDoctors();
-    }, []);
+  useEffect(() => {
+    loadDoctors();
+  }, []);
 
- async function loadDoctors() {
-  try {
-    setIsLoading(true);
+  async function loadDoctors() {
+    try {
+      setIsLoading(true);
 
-    const response = await doctorsService.getAll();
+      const response = await doctorsService.getAll();
 
-    console.log("GET DOCTORS:", response);
+      setDoctors(response);
 
-    setDoctors(response);
-
-    setError("");
-  } finally {
-    setIsLoading(false);
+      setError("");
+    } finally {
+      setIsLoading(false);
+    }
   }
-}
 
-    const filteredDoctors = useMemo(() => {
-      if (!search.trim()) return doctors;
+  const filteredDoctors = useMemo(() => {
+    if (!search.trim()) return doctors;
 
-      const q = search.toLowerCase();
+    const q = search.toLowerCase();
 
-      return doctors.filter((doctor) => {
-        return (
-          doctor.name.toLowerCase().includes(q) ||
-          (doctor.specialty ?? "")
-            .toLowerCase()
-            .includes(q) ||
-          (doctor.email ?? "")
-            .toLowerCase()
-            .includes(q) ||
-          (doctor.phone ?? "")
-            .toLowerCase()
-            .includes(q)
-        );
-      });
-    }, [doctors, search]);
+    return doctors.filter((doctor) => {
+      return (
+        doctor.name.toLowerCase().includes(q) ||
+        (doctor.specialty ?? "")
+          .toLowerCase()
+          .includes(q) ||
+        (doctor.email ?? "")
+          .toLowerCase()
+          .includes(q) ||
+        (doctor.phone ?? "")
+          .toLowerCase()
+          .includes(q)
+      );
+    });
+  }, [doctors, search]);
 
-    function openCreateModal() {
-      setEditingDoctor(null);
-      setShowModal(true);
-    }
+  function openCreateForm() {
+    setEditingDoctor(null);
+    setShowForm(true);
+  }
 
-    function openEditModal(doctor: Doctor) {
-      setEditingDoctor(doctor);
-      setShowModal(true);
-    }
-      function closeModal() {
-      setShowModal(false);
-      setEditingDoctor(null);
-    }
+  function openEditForm(doctor: Doctor) {
+    setEditingDoctor(doctor);
+    setShowForm(true);
+  }
 
-    async function handleSubmit(form: FormData) {
-      try {
-        setIsSubmitting(true);
-        setError("");
+  function closeForm() {
+    setEditingDoctor(null);
+    setShowForm(false);
+  }
 
-        if (editingDoctor) {
-          await doctorsService.update(editingDoctor.id, form);
-        } else {
-          await doctorsService.create(form);
-        }
+  async function handleSubmit(form: FormData) {
+    try {
+      setIsSubmitting(true);
+      setError("");
 
-        closeModal();
-
-        await loadDoctors();
-      } catch (err) {
-        setError(
-          getErrorMessage(
-            err,
-            "Failed to save doctor."
-          )
-        );
-      } finally {
-        setIsSubmitting(false);
+      if (editingDoctor) {
+        await doctorsService.update(editingDoctor.id, form);
+      } else {
+        await doctorsService.create(form);
       }
+
+      closeForm();
+
+      await loadDoctors();
+    } catch (err) {
+      setError(
+        getErrorMessage(
+          err,
+          "Failed to save doctor."
+        )
+      );
+    } finally {
+      setIsSubmitting(false);
     }
+  }
 
-    function askDelete(doctor: Doctor) {
-      setDoctorToDelete(doctor);
+  function askDelete(doctor: Doctor) {
+    setDoctorToDelete(doctor);
+  }
+
+  function closeDeleteDialog() {
+    setDoctorToDelete(null);
+  }
+
+  async function confirmDelete() {
+    if (!doctorToDelete) return;
+
+    try {
+      await doctorsService.delete(
+        doctorToDelete.id
+      );
+
+      setDoctors((prev) =>
+        prev.filter(
+          (d) => d.id !== doctorToDelete.id
+        )
+      );
+
+      closeDeleteDialog();
+    } catch (err) {
+      setError(
+        getErrorMessage(
+          err,
+          "Failed to delete doctor."
+        )
+      );
     }
+  }
+  return (
+  <DashboardLayout
+    title={dict.dashboardPages.doctors.title}
+    description={dict.dashboardPages.doctors.description}
+  >
+    {error && (
+      <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+        {error}
+      </div>
+    )}
 
-    function closeDeleteDialog() {
-      setDoctorToDelete(null);
-    }
+    {showForm ? (
+      <div className="mx-auto max-w-6xl">
 
-    async function confirmDelete() {
-      if (!doctorToDelete) return;
+        <div className="mb-8 flex items-center justify-between">
 
-      try {
-        await doctorsService.delete(
-          doctorToDelete.id
-        );
+          <div>
 
-        setDoctors((prev) =>
-          prev.filter(
-            (d) => d.id !== doctorToDelete.id
-          )
-        );
+            <h2 className="text-3xl font-bold text-slate-900">
+              {editingDoctor ? "Edit Doctor" : "Add Doctor"}
+            </h2>
 
-        closeDeleteDialog();
-      } catch (err) {
-        setError(
-          getErrorMessage(
-            err,
-            "Failed to delete doctor."
-          )
-        );
-      }
-    }
+            <p className="mt-2 text-slate-500">
+              {editingDoctor
+                ? "Update doctor information."
+                : "Fill doctor information to create a new doctor."}
+            </p>
 
-    return (
-      <DashboardLayout
-        title={dict.dashboardPages.doctors.title}
-        description={
-          dict.dashboardPages.doctors.description
-        }
-      >
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          </div>
 
-          <SearchDoctor
-            value={search}
-            onChange={setSearch}
-          />
+          <Button
+            variant="ghost"
+            onClick={closeForm}
+          >
+            ← Back
+          </Button>
+
+        </div>
+
+        <DoctorForm
+          initialData={editingDoctor}
+          isSubmitting={isSubmitting}
+          onSubmit={handleSubmit}
+          onCancel={closeForm}
+        />
+
+      </div>
+    ) : (
+      <>
+
+        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+
+          <div>
+
+            <h2 className="text-3xl font-bold text-slate-900">
+              Doctors
+            </h2>
+
+            <p className="mt-2 text-slate-500">
+              Manage all doctors in your clinic.
+            </p>
+
+          </div>
 
           {isAdmin && (
-            <Button onClick={openCreateModal}>
+            <Button onClick={openCreateForm}>
               + Add Doctor
             </Button>
           )}
 
         </div>
 
-        {error && (
-          <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
-            {error}
+        <div className="mb-6 grid gap-6 md:grid-cols-3">
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+
+            <p className="text-sm text-slate-500">
+              Total Doctors
+            </p>
+
+            <h3 className="mt-3 text-4xl font-bold text-slate-900">
+              {doctors.length}
+            </h3>
+
           </div>
-        )}
+
+          <div className="md:col-span-2">
+
+            <SearchDoctor
+              value={search}
+              onChange={setSearch}
+            />
+
+          </div>
+
+        </div>
 
         {isLoading ? (
-          <p className="text-sm text-slate-500">
-            Loading...
-          </p>
+          <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center text-slate-500 shadow-sm">
+            Loading doctors...
+          </div>
         ) : (
           <DoctorTable
             doctors={filteredDoctors}
-            onEdit={openEditModal}
+            onEdit={openEditForm}
             onDelete={askDelete}
           />
         )}
-              <DoctorModal
-          open={showModal}
-          initialData={editingDoctor}
-          isSubmitting={isSubmitting}
-          onSubmit={handleSubmit}
-          onClose={closeModal}
-        />
 
-        <DeleteDoctorDialog
-          open={doctorToDelete !== null}
-          doctorName={doctorToDelete?.name}
-          onCancel={closeDeleteDialog}
-          onConfirm={confirmDelete}
-        />
+      </>
+    )}
 
-      </DashboardLayout>
-    );
-  }
+    <DeleteDoctorDialog
+      open={doctorToDelete !== null}
+      doctorName={doctorToDelete?.name}
+      onCancel={closeDeleteDialog}
+      onConfirm={confirmDelete}
+    />
+
+  </DashboardLayout>
+);
+}

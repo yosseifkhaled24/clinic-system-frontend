@@ -76,11 +76,12 @@ export default function DashboardPage() {
     description: "",
     price: "",
   });
-  const [appointmentForm, setAppointmentForm] = useState({
-    doctor_id: "",
-    appointment_date: "",
-    notes: "",
-  });
+ const [appointmentForm, setAppointmentForm] = useState({
+  doctor_id: "",
+  service_id: "",
+  appointment_date: "",
+  notes: "",
+});
 
   const loadDashboardData = async () => {
     setLoading(true);
@@ -97,8 +98,9 @@ export default function DashboardPage() {
       ]);
 
       const firstDoctor = doctorsData[0];
-      const queueData = firstDoctor ? await queueService.getToday(firstDoctor.id).catch(() => emptyQueue) : emptyQueue;
-
+      const queueData = firstDoctor
+  ? await queueService.today(firstDoctor.id).catch(() => emptyQueue)
+  : emptyQueue;
       setOverview(overviewData);
       setDoctors(Array.isArray(doctorsData) ? doctorsData : []);
       setAppointments(Array.isArray(appointmentsData) ? appointmentsData : []);
@@ -187,12 +189,18 @@ export default function DashboardPage() {
 
     try {
       await appointmentsService.create({
-        doctor_id: Number(appointmentForm.doctor_id),
-        appointment_date: appointmentForm.appointment_date,
-        notes: appointmentForm.notes,
-      });
+  doctor_id: Number(appointmentForm.doctor_id),
+  service_id: Number(appointmentForm.service_id),
+  appointment_date: appointmentForm.appointment_date,
+  notes: appointmentForm.notes,
+});
       setActionMessage("Appointment created successfully.");
-      setAppointmentForm({ doctor_id: "", appointment_date: "", notes: "" });
+      setAppointmentForm({
+  doctor_id: "",
+  service_id: "",
+  appointment_date: "",
+  notes: "",
+});
       await loadDashboardData();
     } catch (error) {
       setActionError(getErrorMessage(error, "Unable to create appointment."));
@@ -227,202 +235,490 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout title={dict.dashboard.overviewTitle} description={dict.dashboard.overviewDescription}>
-      {error ? <p className="mb-4 text-sm text-rose-600">{error}</p> : null}
-      {actionMessage ? <p className="mb-4 text-sm text-emerald-600">{actionMessage}</p> : null}
-      {actionError ? <p className="mb-4 text-sm text-rose-600">{actionError}</p> : null}
+      {/* Hero */}
 
-      <section className="mb-8 rounded-2xl border border-slate-200 p-5">
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">Quick create</h2>
-          <p className="mt-1 text-sm text-slate-600">Create the core records directly from the dashboard.</p>
-        </div>
+<section className="mb-8 overflow-hidden rounded-3xl bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700 p-8 text-white shadow-xl">
 
-        <div className="grid gap-6 xl:grid-cols-3">
-          <form onSubmit={handleCreateDoctor} className="space-y-3 rounded-2xl bg-slate-50 p-4">
-            <h3 className="font-semibold text-slate-900">Add doctor</h3>
-            <input value={doctorForm.name} onChange={(event) => setDoctorForm((form) => ({ ...form, name: event.target.value }))} required placeholder="Name" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
-            <input value={doctorForm.specialty} onChange={(event) => setDoctorForm((form) => ({ ...form, specialty: event.target.value }))} placeholder="Specialty" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
-            <input value={doctorForm.email} onChange={(event) => setDoctorForm((form) => ({ ...form, email: event.target.value }))} type="email" placeholder="Email" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
-            <input value={doctorForm.phone} onChange={(event) => setDoctorForm((form) => ({ ...form, phone: event.target.value }))} placeholder="Phone" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
-            <input value={doctorForm.password} onChange={(event) => setDoctorForm((form) => ({ ...form, password: event.target.value }))} type="password" placeholder="Password (not supported by current API)" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
-            <p className="text-xs text-slate-500">Doctor password cannot be saved because the current Laravel doctors endpoint does not accept a password field.</p>
-            <input onChange={(event) => setDoctorImage(event.target.files?.[0] ?? null)} type="file" accept="image/png,image/jpeg,image/jpg" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm" />
-            <textarea value={doctorForm.bio} onChange={(event) => setDoctorForm((form) => ({ ...form, bio: event.target.value }))} placeholder="Bio" rows={3} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
-            <button disabled={isSubmittingDoctor} className="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
-              {isSubmittingDoctor ? "Saving..." : "Create doctor"}
-            </button>
-          </form>
+  <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
 
-          <form onSubmit={handleCreateService} className="space-y-3 rounded-2xl bg-slate-50 p-4">
-            <h3 className="font-semibold text-slate-900">Add service</h3>
-            <input value={serviceForm.name} onChange={(event) => setServiceForm((form) => ({ ...form, name: event.target.value }))} required placeholder="Name" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
-            <textarea value={serviceForm.description} onChange={(event) => setServiceForm((form) => ({ ...form, description: event.target.value }))} required placeholder="Description" rows={4} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
-            <input value={serviceForm.price} onChange={(event) => setServiceForm((form) => ({ ...form, price: event.target.value }))} required type="number" min="0" step="0.01" placeholder="Price" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
-            <button disabled={isSubmittingService} className="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
-              {isSubmittingService ? "Saving..." : "Create service"}
-            </button>
-          </form>
+    <div>
 
-          <form onSubmit={handleCreateAppointment} className="space-y-3 rounded-2xl bg-slate-50 p-4">
-            <h3 className="font-semibold text-slate-900">Create appointment</h3>
-            <select value={appointmentForm.doctor_id} onChange={(event) => setAppointmentForm((form) => ({ ...form, doctor_id: event.target.value }))} required className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm">
-              <option value="">Select doctor</option>
-              {doctors.map((doctor) => (
-                <option key={doctor.id} value={doctor.id}>{doctor.name}</option>
-              ))}
-            </select>
-            <input value={appointmentForm.appointment_date} onChange={(event) => setAppointmentForm((form) => ({ ...form, appointment_date: event.target.value }))} required type="date" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
-            <textarea value={appointmentForm.notes} onChange={(event) => setAppointmentForm((form) => ({ ...form, notes: event.target.value }))} placeholder="Notes" rows={3} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
-            <button disabled={isSubmittingAppointment || doctors.length === 0} className="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
-              {isSubmittingAppointment ? "Saving..." : "Create appointment"}
-            </button>
-          </form>
-        </div>
+      <p className="mb-2 text-sm uppercase tracking-[0.25em] text-sky-100">
+        Clinic Dashboard
+      </p>
 
-        <div className="mt-4 rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-600">
-          Patient creation is not available because the Laravel API has no working patient create handler. You can still manage existing patients from <Link href="/dashboard/patients" className="font-semibold text-slate-900">Patients Management</Link>.
-        </div>
-      </section>
+      <h1 className="text-4xl font-bold">
+        Welcome Back 👋
+      </h1>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        {stats.map((stat) => (
-          <Link key={stat.href} href={stat.href} className="rounded-2xl bg-slate-50 p-4 transition hover:bg-slate-100">
-            <p className="text-sm text-slate-600">{stat.label}</p>
-            <p className="mt-2 text-2xl font-semibold text-slate-900">{loading ? "..." : stat.value}</p>
-            <p className="mt-1 text-sm text-slate-500">{stat.detail}</p>
-          </Link>
-        ))}
+      <p className="mt-4 max-w-xl text-sky-100">
+        Manage doctors, appointments, queue and clinic operations
+        from one modern dashboard.
+      </p>
+
+      <div className="mt-8 flex flex-wrap gap-3">
+
+        <Link
+          href="/dashboard/appointments"
+          className="rounded-xl bg-white px-6 py-3 font-semibold text-sky-700 transition hover:scale-105"
+        >
+          Appointments
+        </Link>
+
+        <Link
+          href="/dashboard/doctors"
+          className="rounded-xl border border-white/30 px-6 py-3 font-semibold transition hover:bg-white/10"
+        >
+          Doctors
+        </Link>
+
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <section className="rounded-2xl border border-slate-200 p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">{dict.dashboard.todayAppointments}</h2>
-            <span className="text-sm text-slate-500">{loading ? dict.dashboard.loading : `${todayAppointments.length} ${dict.dashboard.scheduled}`}</span>
-          </div>
-          <div className="space-y-3">
-            {!loading && todayAppointments.length === 0 ? <p className="text-sm text-slate-600">No appointments scheduled today.</p> : null}
-            {todayAppointments.map((appointment) => (
-              <div key={appointment.id} className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
-                <div>
-                  <p className="font-medium text-slate-900">{appointment.doctor.name}</p>
-                  <p className="text-sm text-slate-600">{appointment.patient.name}</p>
-                </div>
-                <span className="text-sm font-semibold text-slate-700">{appointment.status}</span>
-              </div>
-            ))}
-          </div>
-        </section>
+    </div>
 
-        <section className="rounded-2xl border border-slate-200 p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Queue</h2>
-            <Link href="/dashboard/queue" className="text-sm font-semibold text-slate-700">Open -&gt;</Link>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-sm text-slate-600">Current</p>
-              <p className="mt-2 font-semibold text-slate-900">{queue.current?.patient.name || "None"}</p>
-            </div>
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-sm text-slate-600">Waiting</p>
-              <p className="mt-2 font-semibold text-slate-900">{queue.waiting.length}</p>
-            </div>
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-sm text-slate-600">Finished</p>
-              <p className="mt-2 font-semibold text-slate-900">{queue.finished.length}</p>
-            </div>
-          </div>
-        </section>
+    <div className="grid grid-cols-2 gap-4">
 
-        <section className="rounded-2xl border border-slate-200 p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Recent appointments</h2>
-            <Link href="/dashboard/appointments" className="text-sm font-semibold text-slate-700">Open -&gt;</Link>
-          </div>
-          <div className="space-y-3">
-            {!loading && recentAppointments.length === 0 ? <p className="text-sm text-slate-600">No appointments found.</p> : null}
-            {recentAppointments.map((appointment) => (
-              <div key={appointment.id} className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 text-sm">
-                <span className="font-medium text-slate-900">{appointment.patient.name}</span>
-                <span className="text-slate-600">{appointment.appointment_date}</span>
-                <span className="text-slate-500">{appointment.status}</span>
-              </div>
-            ))}
-          </div>
-        </section>
+      <div className="rounded-2xl bg-white/10 p-5 backdrop-blur">
 
-        <section className="rounded-2xl border border-slate-200 p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Pending appointments</h2>
-            <Link href="/dashboard/appointments" className="text-sm font-semibold text-slate-700">Open -&gt;</Link>
-          </div>
-          <div className="space-y-3">
-            {!loading && pendingAppointments.length === 0 ? <p className="text-sm text-slate-600">No pending appointments.</p> : null}
-            {pendingAppointments.map((appointment) => (
-              <div key={appointment.id} className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 text-sm">
-                <span className="font-medium text-slate-900">{appointment.patient.name}</span>
-                <span className="text-slate-600">{appointment.doctor.name}</span>
-                <span className="text-slate-500">{appointment.appointment_date}</span>
-              </div>
-            ))}
-          </div>
-        </section>
+        <p className="text-sm text-sky-100">
+          Today's Appointments
+        </p>
 
-        <section className="rounded-2xl border border-slate-200 p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">{dict.dashboard.recentPatients}</h2>
-            <Link href="/dashboard/patients" className="text-sm font-semibold text-slate-700">Open -&gt;</Link>
-          </div>
-          <div className="space-y-3">
-            {!loading && latestPatients.length === 0 ? <p className="text-sm text-slate-600">No patients found.</p> : null}
-            {latestPatients.map((patient) => (
-              <div key={patient.id} className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 text-sm">
-                <span className="font-medium text-slate-900">{patient.name}</span>
-                <span className="text-slate-600">{patient.phone || patient.email || ""}</span>
-              </div>
-            ))}
-          </div>
-        </section>
+        <h2 className="mt-2 text-4xl font-bold">
+          {overview.appointments_today}
+        </h2>
 
-        <section className="rounded-2xl border border-slate-200 p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Latest reviews</h2>
-            <Link href="/dashboard/reviews" className="text-sm font-semibold text-slate-700">Open -&gt;</Link>
-          </div>
-          <div className="space-y-3">
-            {!loading && latestReviews.length === 0 ? <p className="text-sm text-slate-600">No reviews found.</p> : null}
-            {latestReviews.map((review) => (
-              <div key={review.id} className="rounded-xl bg-slate-50 px-4 py-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-slate-900">{review.user.name}</span>
-                  <span className="text-amber-500">{"*".repeat(review.rating || 0)}</span>
-                </div>
-                <p className="mt-1 text-slate-600">{review.comment || review.doctor.name}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-2xl border border-slate-200 p-5 lg:col-span-2">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Latest messages</h2>
-            <Link href="/dashboard/messages" className="text-sm font-semibold text-slate-700">Open -&gt;</Link>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            {!loading && latestMessages.length === 0 ? <p className="text-sm text-slate-600">No messages found.</p> : null}
-            {latestMessages.map((message) => (
-              <div key={message.id} className="rounded-xl bg-slate-50 px-4 py-3 text-sm">
-                <div className="flex items-center justify-between gap-4">
-                  <span className="font-medium text-slate-900">{message.name}</span>
-                  <span className="text-slate-500">{message.email}</span>
-                </div>
-                <p className="mt-1 text-slate-600">{message.message}</p>
-              </div>
-            ))}
-          </div>
-        </section>
       </div>
-    </DashboardLayout>
-  );
+
+      <div className="rounded-2xl bg-white/10 p-5 backdrop-blur">
+
+        <p className="text-sm text-sky-100">
+          Waiting Queue
+        </p>
+
+        <h2 className="mt-2 text-4xl font-bold">
+          {queue.waiting.length}
+        </h2>
+
+      </div>
+
+      <div className="rounded-2xl bg-white/10 p-5 backdrop-blur">
+
+        <p className="text-sm text-sky-100">
+          Messages
+        </p>
+
+        <h2 className="mt-2 text-4xl font-bold">
+          {overview.messages_count}
+        </h2>
+
+      </div>
+
+      <div className="rounded-2xl bg-white/10 p-5 backdrop-blur">
+
+        <p className="text-sm text-sky-100">
+          Reviews
+        </p>
+
+        <h2 className="mt-2 text-4xl font-bold">
+          {overview.reviews_count}
+        </h2>
+
+      </div>
+
+    </div>
+
+   </div>
+
+  </section>
+{/* Statistics */}
+
+<section className="mb-8">
+
+  <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+
+    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+
+      <p className="text-sm text-slate-500">
+        Doctors
+      </p>
+
+      <h2 className="mt-3 text-4xl font-bold text-slate-900">
+        {doctors.length}
+      </h2>
+
+      <p className="mt-3 text-sm text-sky-600">
+        Registered doctors
+      </p>
+
+    </div>
+
+    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+
+      <p className="text-sm text-slate-500">
+        Patients
+      </p>
+
+      <h2 className="mt-3 text-4xl font-bold text-slate-900">
+        {patients.length}
+      </h2>
+
+      <p className="mt-3 text-sm text-emerald-600">
+        Total patients
+      </p>
+
+    </div>
+
+    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+
+      <p className="text-sm text-slate-500">
+        Appointments
+      </p>
+
+      <h2 className="mt-3 text-4xl font-bold text-slate-900">
+        {appointments.length}
+      </h2>
+
+      <p className="mt-3 text-sm text-orange-600">
+        All appointments
+      </p>
+
+    </div>
+
+    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+
+      <p className="text-sm text-slate-500">
+        Reviews
+      </p>
+
+      <h2 className="mt-3 text-4xl font-bold text-slate-900">
+        {reviews.length}
+      </h2>
+
+      <p className="mt-3 text-sm text-pink-600">
+        Patient reviews
+      </p>
+
+    </div>
+
+  </div>
+
+</section>
+{/* Queue + Today's Appointments */}
+
+<section className="mb-8 grid gap-6 xl:grid-cols-3">
+
+  {/* Queue */}
+
+  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+
+    <div className="mb-6 flex items-center justify-between">
+
+      <h2 className="text-xl font-bold">
+        Queue
+      </h2>
+
+      <Link
+        href="/dashboard/queue"
+        className="text-sm font-semibold text-sky-600 hover:underline"
+      >
+        Open →
+      </Link>
+
+    </div>
+
+    <div className="grid grid-cols-3 gap-4">
+
+      <div className="rounded-2xl bg-slate-100 p-4 text-center">
+
+        <p className="text-sm text-slate-500">
+          Current
+        </p>
+
+        <h3 className="mt-2 text-2xl font-bold">
+          {queue.current ? "#" + queue.current.queue_number : "--"}
+        </h3>
+
+      </div>
+
+      <div className="rounded-2xl bg-yellow-50 p-4 text-center">
+
+        <p className="text-sm text-yellow-700">
+          Waiting
+        </p>
+
+        <h3 className="mt-2 text-2xl font-bold text-yellow-600">
+          {queue.waiting.length}
+        </h3>
+
+      </div>
+
+      <div className="rounded-2xl bg-green-50 p-4 text-center">
+
+        <p className="text-sm text-green-700">
+          Finished
+        </p>
+
+        <h3 className="mt-2 text-2xl font-bold text-green-600">
+          {queue.finished.length}
+        </h3>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  {/* Today's Appointments */}
+
+  <div className="xl:col-span-2 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+
+    <div className="mb-6 flex items-center justify-between">
+
+      <h2 className="text-xl font-bold">
+        Today's Appointments
+      </h2>
+
+      <Link
+        href="/dashboard/appointments"
+        className="text-sm font-semibold text-sky-600 hover:underline"
+      >
+        View All →
+      </Link>
+
+    </div>
+
+    <div className="space-y-4">
+
+      {appointments.slice(0, 5).map((appointment) => (
+
+        <div
+          key={appointment.id}
+          className="flex items-center justify-between rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50"
+        >
+
+          <div>
+
+            <h3 className="font-semibold">
+              {appointment.patient.name}
+            </h3>
+
+            <p className="text-sm text-slate-500">
+              {appointment.doctor.name}
+            </p>
+
+          </div>
+
+          <span className="rounded-full bg-sky-100 px-4 py-2 text-sm font-semibold text-sky-700">
+
+            #{appointment.queue_number}
+
+          </span>
+
+        </div>
+
+      ))}
+
+      {appointments.length === 0 && (
+
+        <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-500">
+
+          No appointments yet.
+
+        </div>
+
+      )}
+
+    </div>
+
+  </div>
+
+</section>
+{/* Recent Activity + Quick Actions */}
+
+<section className="grid gap-6 lg:grid-cols-2">
+
+  {/* Recent Activity */}
+
+  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+
+    <div className="mb-6 flex items-center justify-between">
+
+      <h2 className="text-xl font-bold">
+        Recent Activity
+      </h2>
+
+      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold">
+        Live
+      </span>
+
+    </div>
+
+    <div className="space-y-4">
+
+      <div className="flex items-center gap-4 rounded-2xl bg-slate-50 p-4">
+
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sky-100 text-xl">
+          👨‍⚕️
+        </div>
+
+        <div>
+
+          <p className="font-semibold">
+            {doctors.length} Doctors Registered
+          </p>
+
+          <p className="text-sm text-slate-500">
+            Clinic medical team.
+          </p>
+
+        </div>
+
+      </div>
+
+      <div className="flex items-center gap-4 rounded-2xl bg-slate-50 p-4">
+
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-xl">
+          👥
+        </div>
+
+        <div>
+
+          <p className="font-semibold">
+            {patients.length} Patients
+          </p>
+
+          <p className="text-sm text-slate-500">
+            Registered patients.
+          </p>
+
+        </div>
+
+      </div>
+
+      <div className="flex items-center gap-4 rounded-2xl bg-slate-50 p-4">
+
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-xl">
+          📅
+        </div>
+
+        <div>
+
+          <p className="font-semibold">
+            {appointments.length} Appointments
+          </p>
+
+          <p className="text-sm text-slate-500">
+            Total appointments.
+          </p>
+
+        </div>
+
+      </div>
+
+      <div className="flex items-center gap-4 rounded-2xl bg-slate-50 p-4">
+
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-pink-100 text-xl">
+          ⭐
+        </div>
+
+        <div>
+
+          <p className="font-semibold">
+            {reviews.length} Reviews
+          </p>
+
+          <p className="text-sm text-slate-500">
+            Patient feedback.
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  {/* Quick Actions */}
+
+  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+
+    <h2 className="mb-6 text-xl font-bold">
+      Quick Actions
+    </h2>
+
+    <div className="grid gap-4 sm:grid-cols-2">
+
+      <Link
+        href="/dashboard/doctors"
+        className="rounded-2xl border border-slate-200 p-6 transition hover:-translate-y-1 hover:border-sky-500 hover:bg-sky-50"
+      >
+        <div className="text-3xl">👨‍⚕️</div>
+
+        <h3 className="mt-4 font-bold">
+          Doctors
+        </h3>
+
+        <p className="mt-2 text-sm text-slate-500">
+          Manage doctors.
+        </p>
+
+      </Link>
+
+      <Link
+        href="/dashboard/patients"
+        className="rounded-2xl border border-slate-200 p-6 transition hover:-translate-y-1 hover:border-emerald-500 hover:bg-emerald-50"
+      >
+        <div className="text-3xl">👥</div>
+
+        <h3 className="mt-4 font-bold">
+          Patients
+        </h3>
+
+        <p className="mt-2 text-sm text-slate-500">
+          View patients.
+        </p>
+
+      </Link>
+
+      <Link
+        href="/dashboard/appointments"
+        className="rounded-2xl border border-slate-200 p-6 transition hover:-translate-y-1 hover:border-orange-500 hover:bg-orange-50"
+      >
+        <div className="text-3xl">📅</div>
+
+        <h3 className="mt-4 font-bold">
+          Appointments
+        </h3>
+
+        <p className="mt-2 text-sm text-slate-500">
+          Open appointments.
+        </p>
+
+      </Link>
+
+      <Link
+        href="/dashboard/services"
+        className="rounded-2xl border border-slate-200 p-6 transition hover:-translate-y-1 hover:border-purple-500 hover:bg-purple-50"
+      >
+        <div className="text-3xl">🩺</div>
+
+        <h3 className="mt-4 font-bold">
+          Services
+        </h3>
+
+        <p className="mt-2 text-sm text-slate-500">
+          Clinic services.
+        </p>
+
+      </Link>
+
+    </div>
+
+  </div>
+
+</section>
+</DashboardLayout>
+);
 }
