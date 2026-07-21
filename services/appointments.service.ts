@@ -57,6 +57,19 @@ export const appointmentsService = {
 
     return unwrapResponse(response);
   },
+   async updatePayment(
+  id: number,
+  paymentMethod:
+    | "cash"
+    | "visa"
+    | "stripe"
+    | "instapay"
+    | "vodafone_cash"
+) {
+  return api.patch(`/appointments/${id}/payment`, {
+    payment_method: paymentMethod,
+  });
+},
 
   async delete(id: number) {
     const response = await api.delete(`/appointments/${id}`);

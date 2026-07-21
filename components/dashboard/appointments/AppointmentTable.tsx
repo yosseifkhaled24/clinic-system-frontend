@@ -1,18 +1,35 @@
 "use client";
 
+import { useState } from "react";
+
+import { appointmentsService } from "@/services/appointments.service";
+
 import type { Appointment } from "@/types/appointment";
 
 interface AppointmentTableProps {
   appointments: Appointment[];
   onEdit: (appointment: Appointment) => void;
   onCancel: (appointment: Appointment) => void;
+  onReceivePayment: (
+    appointment: Appointment,
+    method:
+      | "cash"
+      | "visa"
+      | "stripe"
+      | "instapay"
+      | "vodafone_cash"
+  ) => Promise<void>;
 }
 
 export default function AppointmentTable({
   appointments,
   onEdit,
   onCancel,
+  onReceivePayment,
 }: AppointmentTableProps) {
+  const [loadingId, setLoadingId] =
+    useState<number | null>(null);
+
   const getStatusClass = (status: string) => {
     switch (status) {
       case "completed":
@@ -25,6 +42,27 @@ export default function AppointmentTable({
         return "bg-yellow-100 text-yellow-700";
     }
   };
+
+  async function receivePayment(
+    appointment: Appointment,
+    method:
+      | "cash"
+      | "visa"
+      | "stripe"
+      | "instapay"
+      | "vodafone_cash"
+  ) {
+    try {
+      setLoadingId(appointment.id);
+
+      await onReceivePayment(
+        appointment,
+        method
+      );
+    } finally {
+      setLoadingId(null);
+    }
+  }
 
   return (
     <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -93,17 +131,14 @@ export default function AppointmentTable({
               </tr>
 
             )}
-                        {appointments.map((appointment) => (
 
-              <tr
+            {appointments.map((appointment) => (
+                            <tr
                 key={appointment.id}
                 className="border-b border-slate-100 transition hover:bg-sky-50/40"
               >
-
                 <td className="px-6 py-5">
-
                   <div>
-
                     <h3 className="font-semibold text-slate-900">
                       {appointment.patient.name}
                     </h3>
@@ -111,15 +146,11 @@ export default function AppointmentTable({
                     <p className="mt-1 text-sm text-slate-500">
                       {appointment.patient.phone || "No phone"}
                     </p>
-
                   </div>
-
                 </td>
 
                 <td className="px-6 py-5">
-
                   <div>
-
                     <h3 className="font-semibold text-slate-900">
                       {appointment.doctor.name}
                     </h3>
@@ -127,18 +158,12 @@ export default function AppointmentTable({
                     <p className="mt-1 text-sm text-slate-500">
                       {appointment.doctor.specialty || "General"}
                     </p>
-
                   </div>
-
                 </td>
 
                 <td className="px-6 py-5 text-sm text-slate-600">
-
                   <div className="space-y-1">
-
-                    <p>
-                      {appointment.appointment_date}
-                    </p>
+                    <p>{appointment.appointment_date}</p>
 
                     {appointment.queue_number && (
                       <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
@@ -146,12 +171,23 @@ export default function AppointmentTable({
                       </span>
                     )}
 
+                    <div className="mt-2">
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                          appointment.payment.status === "paid"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-orange-100 text-orange-700"
+                        }`}
+                      >
+                        {appointment.payment.status === "paid"
+                          ? `Paid (${appointment.payment.method ?? "-"})`
+                          : "Unpaid"}
+                      </span>
+                    </div>
                   </div>
-
                 </td>
 
                 <td className="px-6 py-5">
-
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClass(
                       appointment.status
@@ -159,13 +195,10 @@ export default function AppointmentTable({
                   >
                     {appointment.status}
                   </span>
-
                 </td>
 
                 <td className="px-6 py-5">
-
-                  <div className="flex justify-center gap-3">
-
+                  <div className="flex justify-center gap-3 flex-wrap">
                     <button
                       onClick={() => onEdit(appointment)}
                       className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-all hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
@@ -180,19 +213,59 @@ export default function AppointmentTable({
                       ❌ Cancel
                     </button>
 
+                    {appointment.payment.status === "unpaid" && (
+                      <select
+                        disabled={loadingId === appointment.id}
+                        defaultValue=""
+                        onChange={(e) => {
+                          if (!e.target.value) return;
+
+                          receivePayment(
+                            appointment,
+                            e.target.value as
+                              | "cash"
+                              | "visa"
+                              | "stripe"
+                              | "instapay"
+                              | "vodafone_cash"
+                          );
+
+                          e.target.selectedIndex = 0;
+                        }}
+                        className="rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm font-medium text-green-700"
+                      >
+                        <option value="">
+                          💰 Receive Payment
+                        </option>
+
+                        <option value="cash">
+                          Cash
+                        </option>
+
+                        <option value="visa">
+                          Visa
+                        </option>
+
+                        <option value="stripe">
+                          Stripe
+                        </option>
+
+                        <option value="instapay">
+                          InstaPay
+                        </option>
+
+                        <option value="vodafone_cash">
+                          Vodafone Cash
+                        </option>
+                      </select>
+                    )}
                   </div>
-
                 </td>
-
               </tr>
-
-            ))}
-                      </tbody>
-
+                          ))}
+          </tbody>
         </table>
-
       </div>
-
     </div>
   );
 }

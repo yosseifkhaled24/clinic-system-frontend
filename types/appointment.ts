@@ -5,18 +5,26 @@ export interface Appointment {
     id: number;
     name: string;
     specialty?: string | null;
-  }; 
-   service: {
-     id: number;
-     name: string;
-     price: number;
-   };
+  };
+
+  service: {
+    id: number;
+    name: string;
+    price: number;
+  };
 
   patient: {
     id: number;
     name: string;
     email?: string | null;
-    phone?: string |null;
+    phone?: string | null;
+  };
+
+  // 👇 أضف الجزء ده
+  payment: {
+    status: "paid" | "unpaid";
+    method: string | null;
+    paid_at: string | null;
   };
 
   queue_number: number;
@@ -55,10 +63,8 @@ export interface AppointmentCreatePayload {
 
   notes?: string;
 
-  // Existing Patient
   patient_id?: number;
 
-  // New Patient
   name?: string;
 
   phone?: string;

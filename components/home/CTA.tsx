@@ -35,11 +35,9 @@ export default function CTA() {
           <div className="mt-10 flex flex-wrap justify-center gap-4">
                         <Link href="/booking">
 
-              <Button className="rounded-2xl bg-white px-8 py-6 text-base font-semibold text-sky-700 hover:bg-slate-100">
-
-                Book Appointment
-
-              </Button>
+              <Button className="rounded-2xl bg-sky-500 px-8 py-6 text-base font-semibold text-white hover:bg-sky-600">
+  Book Appointment
+</Button>
 
             </Link>
 

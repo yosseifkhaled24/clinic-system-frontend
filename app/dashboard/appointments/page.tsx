@@ -18,17 +18,17 @@ import { doctorsService } from "@/services/doctors.service";
 import { patientsService } from "@/services/patients.service";
 import { servicesService } from "@/services/services.service";
 import { exportAppointments } from "@/services/export.service";
+
 import type { Service } from "@/types/service";
-
-import { getDictionary } from "@/lib/i18n";
-import { getErrorMessage } from "@/lib/errors";
-
 import type {
   Appointment,
   AppointmentCreatePayload,
 } from "@/types/appointment";
 import type { Doctor } from "@/types/doctor";
 import type { Patient } from "@/types/patient";
+
+import { getDictionary } from "@/lib/i18n";
+import { getErrorMessage } from "@/lib/errors";
 
 export default function DashboardAppointmentsPage() {
   const { language } = useLanguage();
@@ -40,6 +40,7 @@ export default function DashboardAppointmentsPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -61,15 +62,16 @@ export default function DashboardAppointmentsPage() {
   useEffect(() => {
     loadData();
   }, []);
-    async function loadData() {
+
+  async function loadData() {
     try {
       setIsLoading(true);
 
-     const [
-       appointmentsData,
-       doctorsData,
-       patientsData,
-       servicesData,
+      const [
+        appointmentsData,
+        doctorsData,
+        patientsData,
+        servicesData,
       ] = await Promise.all([
         appointmentsService.getAll(),
         doctorsService.getAll(),
@@ -100,8 +102,7 @@ export default function DashboardAppointmentsPage() {
 
     if (statusFilter !== "all") {
       data = data.filter(
-        (appointment) =>
-          appointment.status === statusFilter
+        (appointment) => appointment.status === statusFilter
       );
     }
 
@@ -111,15 +112,9 @@ export default function DashboardAppointmentsPage() {
 
     return data.filter((appointment) => {
       return (
-        appointment.patient.name
-          .toLowerCase()
-          .includes(q) ||
-        appointment.doctor.name
-          .toLowerCase()
-          .includes(q) ||
-        appointment.status
-          .toLowerCase()
-          .includes(q)
+        appointment.patient.name.toLowerCase().includes(q) ||
+        appointment.doctor.name.toLowerCase().includes(q) ||
+        appointment.status.toLowerCase().includes(q)
       );
     });
   }, [appointments, search, statusFilter]);
@@ -129,9 +124,7 @@ export default function DashboardAppointmentsPage() {
     setShowForm(true);
   }
 
-  function openEditForm(
-    appointment: Appointment
-  ) {
+  function openEditForm(appointment: Appointment) {
     setEditingAppointment(appointment);
     setShowForm(true);
   }
@@ -140,8 +133,7 @@ export default function DashboardAppointmentsPage() {
     setEditingAppointment(null);
     setShowForm(false);
   }
-
-  async function handleSubmit(
+    async function handleSubmit(
     payload: AppointmentCreatePayload
   ) {
     try {
@@ -203,8 +195,35 @@ export default function DashboardAppointmentsPage() {
         )
       );
     }
-  } 
-     return (
+  }
+
+  async function handleReceivePayment(
+    appointment: Appointment,
+    method:
+      | "cash"
+      | "visa"
+      | "stripe"
+      | "instapay"
+      | "vodafone_cash"
+  ) {
+    try {
+      await appointmentsService.updatePayment(
+        appointment.id,
+        method
+      );
+
+      await loadData();
+    } catch (err) {
+      setError(
+        getErrorMessage(
+          err,
+          "Failed to receive payment."
+        )
+      );
+    }
+  }
+
+  return (
     <DashboardLayout
       title={dict.dashboardPages.appointments.title}
       description={dict.dashboardPages.appointments.description}
@@ -217,11 +236,8 @@ export default function DashboardAppointmentsPage() {
 
       {showForm ? (
         <div className="mx-auto max-w-7xl">
-
           <div className="mb-8 flex items-center justify-between">
-
             <div>
-
               <h2 className="text-3xl font-bold text-slate-900">
                 {editingAppointment
                   ? "Edit Appointment"
@@ -233,7 +249,6 @@ export default function DashboardAppointmentsPage() {
                   ? "Update appointment information."
                   : "Create a new appointment."}
               </p>
-
             </div>
 
             <Button
@@ -242,7 +257,6 @@ export default function DashboardAppointmentsPage() {
             >
               ← Back
             </Button>
-
           </div>
 
           <AppointmentForm
@@ -254,15 +268,11 @@ export default function DashboardAppointmentsPage() {
             onSubmit={handleSubmit}
             onCancel={closeForm}
           />
-
         </div>
       ) : (
         <>
-
           <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-
             <div>
-
               <h2 className="text-3xl font-bold text-slate-900">
                 Appointments
               </h2>
@@ -270,30 +280,24 @@ export default function DashboardAppointmentsPage() {
               <p className="mt-2 text-slate-500">
                 Manage all clinic appointments.
               </p>
-
             </div>
 
             <div className="flex flex-wrap gap-3">
-
-         <Button
-            variant="ghost"
-           onClick={exportAppointments}
-         >
-            📊 Export Excel
-         </Button>
+              <Button
+                variant="ghost"
+                onClick={exportAppointments}
+              >
+                📊 Export Excel
+              </Button>
 
               {isAdmin && (
                 <Button onClick={openCreateForm}>
                   + Add Appointment
                 </Button>
               )}
-
             </div>
-
           </div>
-
-          <div className="mb-6 grid gap-6 lg:grid-cols-4">
-
+                    <div className="mb-6 grid gap-6 lg:grid-cols-4">
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <p className="text-sm text-slate-500">
                 Total Appointments
@@ -312,7 +316,6 @@ export default function DashboardAppointmentsPage() {
             </div>
 
             <div>
-
               <select
                 value={statusFilter}
                 onChange={(e) =>
@@ -320,38 +323,15 @@ export default function DashboardAppointmentsPage() {
                 }
                 className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-sky-500"
               >
-                <option value="all">
-                  All Status
-                </option>
-
-                <option value="pending">
-                  Pending
-                </option>
-
-                <option value="arrived">
-                  Arrived
-                </option>
-
-                <option value="in_progress">
-                  In Progress
-                </option>
-
-                <option value="completed">
-                  Completed
-                </option>
-
-                <option value="cancelled">
-                  Cancelled
-                </option>
-
-                <option value="no_show">
-                  No Show
-                </option>
-
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="arrived">Arrived</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="no_show">No Show</option>
               </select>
-
             </div>
-
           </div>
 
           {isLoading ? (
@@ -363,21 +343,18 @@ export default function DashboardAppointmentsPage() {
               appointments={filteredAppointments}
               onEdit={openEditForm}
               onCancel={askDelete}
+              onReceivePayment={handleReceivePayment}
             />
           )}
-
         </>
       )}
 
       <DeleteAppointmentDialog
         open={appointmentToDelete !== null}
-        patientName={
-          appointmentToDelete?.patient.name
-        }
+        patientName={appointmentToDelete?.patient.name}
         onCancel={closeDeleteDialog}
         onConfirm={confirmDelete}
       />
-
     </DashboardLayout>
   );
 }

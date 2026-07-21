@@ -99,7 +99,7 @@ export default function BookingPage() {
         });
 
       setMessage(
-        `${dict.booking.success}\n\nرقم دورك اليوم هو: ${response.queue_number}`
+        `${dict.booking.success}\n\nYour number today is:: ${response.queue_number}`
       );
 
       setDate("");

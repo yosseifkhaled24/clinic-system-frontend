@@ -10,7 +10,9 @@ import { useAuth } from "@/context/AuthContext";
 import type { AuthUser } from "@/types/auth";
 import type { Doctor } from "@/types/doctor";
 import type { Appointment } from "@/types/appointment";
-
+import { paymentService } from "@/services/payment.service";
+import { getErrorMessage } from "@/lib/errors";
+import { Button } from "@/components/ui/Button";
 type ProfileContentProps = {
   profile: AuthUser | null;
   doctors: Doctor[];
@@ -28,7 +30,23 @@ export default function ProfileContent({
 
   const [activeTab, setActiveTab] =
     useState("profile");
+   
+    const handlePayment = async (appointmentId: number) => {
+  try {
+    const response = await paymentService.checkout(
+      appointmentId
+    );
 
+    window.location.href = response.checkout_url;
+  } catch (error) {
+    alert(
+      getErrorMessage(
+        error,
+        "Unable to start payment."
+      )
+    );
+  }
+};
   return (
     <section className="py-20">
       <div className="mx-auto max-w-7xl px-6">
@@ -228,9 +246,27 @@ export default function ProfileContent({
 
                       </div>
 
-                      <span className="rounded-full bg-sky-100 px-4 py-2 text-sm font-semibold text-sky-700">
-                        {appointment.status}
-                      </span>
+                      <div className="flex flex-col items-end gap-3">
+
+  <span className="rounded-full bg-sky-100 px-4 py-2 text-sm font-semibold text-sky-700">
+    {appointment.status}
+  </span>
+
+  {appointment.payment?.status === "unpaid" ? (
+    <Button
+      onClick={() =>
+        handlePayment(appointment.id)
+      }
+    >
+      Pay Now
+    </Button>
+  ) : (
+    <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-700">
+      Paid
+    </span>
+  )}
+
+</div>
 
                     </div>
 
