@@ -4,13 +4,11 @@ import Link from "next/link";
 import { Bell, Globe, Moon, Search, Home } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { useTheme } from "@/context/ThemeContext";
 import { getDictionary } from "@/lib/i18n";
 
 export default function DashboardNavbar() {
   const { user } = useAuth();
   const { language, toggleLanguage } = useLanguage();
-  const { theme, toggleTheme } = useTheme();
   const dict = getDictionary(language);
 
   return (
@@ -53,15 +51,6 @@ export default function DashboardNavbar() {
           className="hidden rounded-xl border border-slate-200 p-2.5 transition hover:bg-slate-100 sm:block text-xs font-bold"
         >
           {language === "ar" ? "EN" : "عربي"}
-        </button>
-
-        {/* Theme */}
-        <button
-          onClick={toggleTheme}
-          aria-label="Toggle theme"
-          className="rounded-xl border border-slate-200 p-2.5 transition hover:bg-slate-100"
-        >
-          {theme === "light" ? <Moon size={16} /> : <Bell size={16} />}
         </button>
 
         {/* User avatar */}

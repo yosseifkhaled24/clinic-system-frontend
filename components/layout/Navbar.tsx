@@ -4,8 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
-  Moon,
-  Sun,
   UserRound,
   LayoutDashboard,
   House,
@@ -22,7 +20,6 @@ import { Button } from "@/components/ui/Button";
 
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { useTheme } from "@/context/ThemeContext";
 
 import { getDictionary } from "@/lib/i18n";
 
@@ -31,7 +28,6 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const { language, toggleLanguage } = useLanguage();
-  const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
 
   const dict = getDictionary(language);
@@ -57,14 +53,14 @@ export function Navbar() {
   const closeMobile = () => setMobileOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/80 shadow-sm backdrop-blur-xl dark:border-slate-700 dark:bg-slate-950/80">
+    <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/80 shadow-sm backdrop-blur-xl">
 
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-20 sm:px-6 lg:px-8">
 
         {/* Logo */}
         <Link
           href="/"
-          className="text-2xl font-extrabold tracking-tight text-sky-700 transition hover:scale-105 dark:text-sky-400 sm:text-4xl"
+          className="text-2xl font-extrabold tracking-tight text-sky-700 transition hover:scale-105 sm:text-4xl"
           onClick={closeMobile}
         >
           MediCare
@@ -80,8 +76,8 @@ export function Navbar() {
                 href={link.href}
                 className={`flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-all duration-300 lg:px-4 ${
                   pathname === link.href
-                    ? "bg-sky-100 text-sky-700 shadow-sm dark:bg-sky-900/30 dark:text-sky-300"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-sky-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-sky-400"
+                    ? "bg-sky-100 text-sky-700 shadow-sm"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-sky-600"
                 }`}
               >
                 <Icon size={16} />
@@ -103,16 +99,8 @@ export function Navbar() {
           )}
 
           <button
-            onClick={toggleTheme}
-            aria-label="Toggle theme"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 transition hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
-          >
-            {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
-          </button>
-
-          <button
             onClick={toggleLanguage}
-            className="rounded-full border border-slate-200 px-3 py-2 text-sm font-medium transition hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+            className="rounded-full border border-slate-200 px-3 py-2 text-sm font-medium transition hover:bg-slate-100"
           >
             {language === "en" ? "العربية" : "English"}
           </button>
@@ -121,10 +109,10 @@ export function Navbar() {
             <>
               <Link
                 href="/profile"
-                className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 font-medium shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md dark:border-slate-700 dark:bg-slate-900 dark:hover:border-sky-600"
+                className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 font-medium shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md"
               >
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-100 dark:bg-sky-900/40">
-                  <UserRound size={15} className="text-sky-700 dark:text-sky-300" />
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-100">
+                  <UserRound size={15} className="text-sky-700" />
                 </div>
                 <span className="hidden max-w-[100px] truncate text-sm lg:inline">
                   {displayName}
@@ -134,7 +122,7 @@ export function Navbar() {
               <Button
                 variant="ghost"
                 onClick={() => logout()}
-                className="rounded-full border border-red-200 px-3 text-red-600 transition-all hover:bg-red-50 hover:text-red-700 dark:border-red-900 dark:hover:bg-red-950"
+                className="rounded-full border border-red-200 px-3 text-red-600 transition-all hover:bg-red-50 hover:text-red-700"
               >
                 Logout
               </Button>
@@ -158,17 +146,9 @@ export function Navbar() {
         {/* Mobile hamburger */}
         <div className="flex items-center gap-2 md:hidden">
           <button
-            onClick={toggleTheme}
-            aria-label="Toggle theme"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 transition hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
-          >
-            {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
-          </button>
-
-          <button
             onClick={() => setMobileOpen((v) => !v)}
             aria-label="Toggle menu"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 transition hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 transition hover:bg-slate-100"
           >
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -178,7 +158,7 @@ export function Navbar() {
 
       {/* Mobile Menu Drawer */}
       {mobileOpen && (
-        <div className="border-t border-slate-200 bg-white/95 backdrop-blur-xl dark:border-slate-700 dark:bg-slate-950/95 md:hidden">
+        <div className="border-t border-slate-200 bg-white/95 backdrop-blur-xl md:hidden">
           <nav className="space-y-1 px-4 py-4">
             {links.map((link) => {
               const Icon = link.icon;
@@ -189,8 +169,8 @@ export function Navbar() {
                   onClick={closeMobile}
                   className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all ${
                     pathname === link.href
-                      ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-sky-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                        ? "bg-sky-100 text-sky-700"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-sky-600"
                   }`}
                 >
                   <Icon size={18} />
@@ -200,7 +180,7 @@ export function Navbar() {
             })}
           </nav>
 
-          <div className="border-t border-slate-200 px-4 py-4 dark:border-slate-700">
+          <div className="border-t border-slate-200 px-4 py-4">
             <div className="flex flex-col gap-3">
               {user?.role === "admin" && (
                 <Link href="/dashboard" onClick={closeMobile}>
@@ -213,7 +193,7 @@ export function Navbar() {
 
               <button
                 onClick={() => { toggleLanguage(); closeMobile(); }}
-                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium transition hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium transition hover:bg-slate-100"
               >
                 {language === "en" ? "العربية" : "English"}
               </button>
@@ -223,10 +203,10 @@ export function Navbar() {
                   <Link
                     href="/profile"
                     onClick={closeMobile}
-                    className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 font-medium transition hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+                    className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 font-medium transition hover:bg-slate-100"
                   >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-100 dark:bg-sky-900/40">
-                      <UserRound size={16} className="text-sky-700 dark:text-sky-300" />
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-100">
+                      <UserRound size={16} className="text-sky-700" />
                     </div>
                     <span className="truncate">{displayName}</span>
                   </Link>
