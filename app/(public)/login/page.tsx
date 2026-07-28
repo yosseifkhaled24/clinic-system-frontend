@@ -25,8 +25,8 @@ export default function LoginPage() {
     setError("");
     setIsLoading(true);
     try {
-      await login(email, password);
-      router.push("/profile");
+      const loggedInUser = await login(email, password);
+      router.push(loggedInUser.role === "admin" ? "/dashboard" : "/profile");
     } catch (error) {
       setError(getErrorMessage(error, dict.auth.login.error));
     } finally {

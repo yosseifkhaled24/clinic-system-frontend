@@ -24,11 +24,11 @@ export default function ScheduleTable({
 
             <tr>
 
-              <th className="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-5 text-start text-xs font-bold uppercase tracking-wider text-slate-500">
                 Doctor
               </th>
 
-              <th className="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-5 text-start text-xs font-bold uppercase tracking-wider text-slate-500">
                 Working Day
               </th>
 

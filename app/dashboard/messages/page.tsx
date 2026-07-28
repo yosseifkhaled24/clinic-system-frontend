@@ -115,52 +115,15 @@ export default function DashboardMessagesPage() {
   }, [messages]);
 
   async function handleDelete(id: number) {
-
-    if (!confirm("Delete this message?"))
-      return;
+    if (!confirm("Delete this message?")) return;
 
     try {
-
       await contactService.delete(id);
-
-      const updated = messages.filter(
-        (message) => message.id !== id
-      );
-
-      setMessages(updated);
-      setFilteredMessages(
-        updated.filter((message) => {
-
-          const keyword = search.toLowerCase();
-
-          return (
-            message.name
-              .toLowerCase()
-              .includes(keyword) ||
-
-            message.email
-              .toLowerCase()
-              .includes(keyword) ||
-
-            message.message
-              .toLowerCase()
-              .includes(keyword)
-          );
-
-        })
-      );
-
+      // Removing from messages triggers the useEffect that re-filters
+      setMessages((prev) => prev.filter((m) => m.id !== id));
     } catch (err) {
-
-      setError(
-        getErrorMessage(
-          err,
-          "Failed to delete message."
-        )
-      );
-
+      setError(getErrorMessage(err, "Failed to delete message."));
     }
-
   }
 
   return (

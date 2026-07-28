@@ -1,14 +1,15 @@
-import { api } from "@/lib/api";
+import api from "@/lib/axios";
+import { unwrapResponse } from "./response";
 
 export const paymentService = {
   async checkout(appointmentId: number) {
-    const data = await api.post<{
-      message: string;
-      checkout_url: string;
-    }>("/payments/checkout", {
+    const response = await api.post("/payments/checkout", {
       appointment_id: appointmentId,
     });
 
-    return data;
+    return unwrapResponse<{
+      message: string;
+      checkout_url: string;
+    }>(response);
   },
-};
+};

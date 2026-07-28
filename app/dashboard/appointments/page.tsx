@@ -29,6 +29,9 @@ import type { Patient } from "@/types/patient";
 
 import { getDictionary } from "@/lib/i18n";
 import { getErrorMessage } from "@/lib/errors";
+import { SkeletonTable } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
+
 
 export default function DashboardAppointmentsPage() {
   const { language } = useLanguage();
@@ -61,6 +64,27 @@ export default function DashboardAppointmentsPage() {
 
   useEffect(() => {
     loadData();
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const refreshAppointments = async () => {
+      try {
+        const appointmentsData = await appointmentsService.getAll();
+        if (!isMounted) return;
+        setAppointments(appointmentsData);
+      } catch {
+        // Keep current appointments visible while background refresh fails.
+      }
+    };
+
+    const interval = setInterval(refreshAppointments, 15000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   async function loadData() {
@@ -297,7 +321,7 @@ export default function DashboardAppointmentsPage() {
               )}
             </div>
           </div>
-                    <div className="mb-6 grid gap-6 lg:grid-cols-4">
+          <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <p className="text-sm text-slate-500">
                 Total Appointments
@@ -335,9 +359,7 @@ export default function DashboardAppointmentsPage() {
           </div>
 
           {isLoading ? (
-            <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center text-slate-500 shadow-sm">
-              Loading appointments...
-            </div>
+            <SkeletonTable rows={5} cols={5} />
           ) : (
             <AppointmentTable
               appointments={filteredAppointments}

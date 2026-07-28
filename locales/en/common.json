@@ -20,7 +20,60 @@
       "title": "Book appointments with top specialists in minutes.",
       "description": "Manage consultations, view doctors, and organize treatments through one elegant platform.",
       "ctaBook": "Book an appointment",
-      "ctaExplore": "Explore doctors"
+      "ctaExplore": "Explore doctors",
+      "cardTag": "Trusted Healthcare",
+      "cardTitle": "Book appointments with the best doctors.",
+      "cardDesc": "Fast booking, trusted specialists, secure medical records, and an easy-to-use clinic management experience.",
+      "doctors": "Doctors",
+      "patients": "Patients",
+      "appointments": "Appointments",
+      "support": "24/7 Support"
+    },
+    "stats": {
+      "doctors": "Doctors",
+      "patients": "Patients",
+      "appointments": "Appointments",
+      "reviews": "Reviews"
+    },
+    "services": {
+      "tag": "Our Services",
+      "title": "Medical Services We Provide",
+      "description": "Professional healthcare services with experienced doctors and modern medical technology.",
+      "learnMore": "Learn More →",
+      "noServices": "No services available."
+    },
+    "featuredDoctors": {
+      "tag": "Doctors",
+      "title": "Meet Our Specialists",
+      "description": "Experienced doctors providing exceptional healthcare with modern medical technology.",
+      "viewProfile": "View Profile →"
+    },
+    "whyChooseUs": {
+      "tag": "Why Choose Us",
+      "title": "Healthcare You Can Trust",
+      "description": "We provide reliable healthcare services with professional doctors and modern technology.",
+      "feature1Title": "Trusted Doctors",
+      "feature1Desc": "Certified specialists with years of medical experience.",
+      "feature2Title": "24/7 Support",
+      "feature2Desc": "Our team is always available whenever you need help.",
+      "feature3Title": "Patient Care",
+      "feature3Desc": "Your health and comfort are always our priority.",
+      "feature4Title": "Quality Service",
+      "feature4Desc": "Modern equipment with high quality healthcare."
+    },
+    "testimonials": {
+      "tag": "Testimonials",
+      "title": "What Our Patients Say",
+      "description": "Trusted by hundreds of happy patients every month.",
+      "patient": "Patient",
+      "noReviews": "No reviews available."
+    },
+    "cta": {
+      "tag": "Ready To Get Started?",
+      "title": "Book Your Appointment Today",
+      "description": "Connect with our experienced doctors and receive professional healthcare whenever you need it.",
+      "book": "Book Appointment",
+      "contact": "Contact Us"
     },
     "benefits": {
       "title": "Why patients choose us",
@@ -31,8 +84,74 @@
       ]
     },
     "doctorCard": {
-      "profile": "View profile"
+      "profile": "View profile",
+      "specialist": "Specialist",
+      "availableToday": "Available Today",
+      "egp": "EGP",
+      "viewProfile": "View Profile",
+      "bookNow": "Book Now"
+    },
+    "serviceCard": {
+      "contactUs": "Contact Us",
+      "book": "Book",
+      "egp": "EGP"
     }
+  },
+  "doctorsHero": {
+    "tag": "Professional Medical Team",
+    "title": "Meet Our Expert Doctors",
+    "description": "Browse experienced specialists, compare expertise, and book your appointment in minutes.",
+    "ctaBook": "Book Appointment",
+    "ctaContact": "Contact Us",
+    "doctorsCount": "Doctors",
+    "specialties": "Specialties",
+    "support": "24/7 Support",
+    "rating": "Top Rating"
+  },
+  "servicesHero": {
+    "tag": "Professional Medical Services",
+    "title": "Medical Services For Your Health",
+    "description": "Discover our complete range of healthcare services provided by experienced specialists.",
+    "ctaBook": "Book Appointment",
+    "ctaContact": "Contact Us",
+    "servicesCount": "Services",
+    "care": "24/7 Care",
+    "doctorsCount": "Doctors",
+    "quality": "100% Quality"
+  },
+  "bookingHero": {
+    "tag": "Book Your Visit",
+    "title": "Book An Appointment",
+    "description": "Choose your preferred doctor, select a suitable date, and confirm your appointment in seconds.",
+    "chooseDoctor": "Choose Doctor",
+    "needHelp": "Need Help?",
+    "easySteps": "Easy Steps",
+    "doctors": "Doctors",
+    "booking": "24/7 Booking",
+    "secure": "100% Secure"
+  },
+  "reviewsHero": {
+    "tag": "Patient Reviews",
+    "title": "What Our Patients Say",
+    "description": "Read genuine feedback from patients who trusted our doctors and healthcare services.",
+    "realReviews": "Real Reviews",
+    "avgRating": "Average Rating",
+    "support": "24/7 Support",
+    "trustedCare": "Trusted Care"
+  },
+  "contactHero": {
+    "tag": "Contact Our Medical Team",
+    "title": "We're Here To Help You",
+    "description": "Whether you need medical assistance, have questions about our services, or want to book an appointment, our team is always ready to help.",
+    "ctaBook": "Book Appointment",
+    "ctaDoctors": "View Doctors",
+    "phone": "Phone",
+    "email": "Email",
+    "address": "Address",
+    "workingHours": "Working Hours",
+    "workingDays": "Sat - Thu",
+    "workingTime": "8:00 AM - 8:00 PM",
+    "cairo": "Cairo, Egypt"
   },
   "auth": {
     "login": {
@@ -61,15 +180,26 @@
     "title": "Book your appointment",
     "description": "Choose a specialist and let us know your preferred time.",
     "doctor": "Doctor",
+    "service": "Service",
+    "chooseService": "Choose Service",
     "date": "Date",
+    "workingHours": "Working Hours",
+    "notAvailable": "Doctor is not available on this day.",
+    "maxPatients": "Max Patients:",
     "reason": "Reason",
+    "reasonPlaceholder": "Describe your reason for visiting...",
+    "noDoctors": "No doctors available.",
     "submit": "Confirm booking",
+    "queueMsg": "Your number today is:",
     "success": "Appointment request submitted successfully.",
     "error": "Unable to submit your appointment."
   },
   "contact": {
     "title": "Contact us",
     "description": "We are happy to help with appointments, questions, or support.",
+    "formTitle": "Send Us A Message",
+    "formDesc": "Fill out the form below and we'll get back to you as soon as possible.",
+    "subject": "Subject",
     "name": "Name",
     "email": "Email",
     "message": "Message",
@@ -78,17 +208,25 @@
     "error": "Unable to send your message right now."
   },
   "doctors": {
-    "title": "Our doctors",
-    "description": "Choose a specialist and book your visit.",
-    "details": "View details"
+    "title": "Our Doctors",
+    "description": "Browse our professional medical team.",
+    "searchPlaceholder": "Search doctor...",
+    "noDoctors": "No doctors found.",
+    "details": "View details",
+    "bookAppointment": "Book Appointment",
+    "backToDoctors": "Back To Doctors",
+    "workingHours": "Working Hours",
+    "noSchedules": "No working schedules available."
   },
   "services": {
-    "title": "Our services",
-    "description": "Comprehensive care tailored to your needs."
+    "title": "Our Medical Services",
+    "description": "Choose the healthcare service that suits your needs.",
+    "noServices": "No services available."
   },
   "reviews": {
     "title": "Patient reviews",
-    "description": "See what patients are saying about us."
+    "description": "See what patients are saying about us.",
+    "noReviews": "No reviews available."
   },
   "profile": {
     "title": "Profile",
@@ -110,11 +248,37 @@
     "overview": "Overview",
     "overviewTitle": "Overview",
     "overviewDescription": "A quick snapshot of your medical operations.",
-    "todayAppointments": "Today's appointments",
+    "heroTag": "Clinic Dashboard",
+    "welcome": "Welcome Back 👋",
+    "heroDesc": "Manage doctors, appointments, queue and clinic operations from one modern dashboard.",
+    "todayAppointments": "Today's Appointments",
+    "waitingQueue": "Waiting Queue",
+    "messages": "Messages",
+    "reviews": "Reviews",
+    "registeredDoctors": "Registered doctors",
+    "totalPatients": "Total patients",
+    "allAppointments": "All appointments",
+    "patientReviews": "Patient reviews",
+    "queue": "Queue",
+    "open": "Open →",
+    "current": "Current",
+    "waiting": "Waiting",
+    "finished": "Finished",
+    "todayApptsTitle": "Today's Appointments",
+    "viewAll": "View All →",
+    "noAppts": "No appointments yet.",
+    "recentActivity": "Recent Activity",
+    "live": "Live",
+    "quickActions": "Quick Actions",
+    "manageDoctors": "Manage doctors.",
+    "viewPatients": "View patients.",
+    "openAppts": "Open appointments.",
+    "clinicServices": "Clinic services.",
+    "doctors": "Doctors",
+    "patients": "Patients",
+    "appointments": "Appointments",
     "loading": "Loading...",
     "scheduled": "scheduled",
-    "quickActions": "Quick actions",
-    "recentPatients": "Recent patients",
     "stats": {
       "appointments": "Appointments",
       "patients": "Patients",

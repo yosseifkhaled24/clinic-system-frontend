@@ -17,6 +17,8 @@ import { doctorsService } from "@/services/doctors.service";
 
 import { getDictionary } from "@/lib/i18n";
 import { getErrorMessage } from "@/lib/errors";
+import { SkeletonTable } from "@/components/ui/Skeleton";
+
 
 import type { Doctor } from "@/types/doctor";
 
@@ -254,9 +256,7 @@ export default function DashboardDoctorsPage() {
         </div>
 
         {isLoading ? (
-          <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center text-slate-500 shadow-sm">
-            Loading doctors...
-          </div>
+          <SkeletonTable rows={5} cols={4} />
         ) : (
           <DoctorTable
             doctors={filteredDoctors}

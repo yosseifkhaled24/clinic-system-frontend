@@ -6,30 +6,20 @@ export function resolveApiImageUrl(imageUrl?: string | null) {
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
   const apiOrigin = apiBaseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
 
-  console.log(`[resolveApiImageUrl] API Origin: ${apiOrigin}, Input: "${imageUrl}"`);
+  // If DB seeded URL points to local backend, replace with live production origin
+  if (imageUrl.includes("localhost:8000") || imageUrl.includes("127.0.0.1:8000")) {
+    return imageUrl
+      .replace(/http:\/\/(localhost|127\.0\.0\.1):8000/g, apiOrigin);
+  }
 
   // If it's already an absolute URL
   if (/^https?:\/\//i.test(imageUrl)) {
-    console.log(`[resolveApiImageUrl] Already absolute URL`);
     return imageUrl;
   }
 
   // Handle relative paths like /storage/X/filename.jpg
   const path = imageUrl.startsWith("/") ? imageUrl : `/${imageUrl}`;
-  
-  // Check if path starts with /storage (Spatie MediaLibrary)
-  if (path.startsWith("/storage")) {
-    // If backend is localhost, construct the full URL
-    if (apiOrigin.includes("localhost") || apiOrigin.includes("127.0.0.1")) {
-      const fullUrl = `${apiOrigin}${path}`;
-      console.log(`[resolveApiImageUrl] Storage path detected, resolved to: ${fullUrl}`);
-      return fullUrl;
-    }
-  }
 
-  // For other paths, just append to origin
-  const fullUrl = `${apiOrigin}${path}`;
-  console.log(`[resolveApiImageUrl] Final resolved URL: ${fullUrl}`);
-  
-  return fullUrl;
+  // Construct full URL from origin + path
+  return `${apiOrigin}${path}`;
 }

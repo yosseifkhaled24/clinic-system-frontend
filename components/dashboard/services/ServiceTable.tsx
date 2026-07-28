@@ -21,15 +21,15 @@ export default function ServiceTable({
 
         <table className="min-w-full">
 
-          <thead className="bg-slate-50">
+          <thead className="border-b border-slate-200 bg-slate-50">
 
-            <tr className="border-b border-slate-200">
+            <tr>
 
-              <th className="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-5 text-start text-xs font-bold uppercase tracking-wider text-slate-500">
                 Service
               </th>
 
-              <th className="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-5 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
                 Price
               </th>
 
@@ -41,7 +41,7 @@ export default function ServiceTable({
 
           </thead>
 
-          <tbody>
+          <tbody className="divide-y divide-slate-100">
 
             {services.length === 0 && (
               <tr>
@@ -72,7 +72,7 @@ export default function ServiceTable({
 
               <tr
                 key={service.id}
-                className="border-b border-slate-100 transition hover:bg-sky-50/40"
+                className="transition hover:bg-slate-50"
               >
 
                 <td className="px-6 py-5">
@@ -101,7 +101,7 @@ export default function ServiceTable({
                   </div>
 
                 </td>
-                                <td className="px-6 py-5">
+                <td className="px-6 py-5 text-center">
 
                   <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
 

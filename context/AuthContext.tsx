@@ -7,8 +7,8 @@ import type { AuthUser } from "@/types/auth";
 interface AuthContextValue {
   user: AuthUser | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, phone: string, email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<AuthUser>;
+  register: (name: string, phone: string, email: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -78,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("token", response.token);
     const currentUser = await authService.getUser();
     setUser(currentUser);
+    return currentUser;
   }, []);
 
   const register = useCallback(async (name: string, phone: string, email: string, password: string) => {
@@ -91,6 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("token", response.token);
     const currentUser = await authService.getUser();
     setUser(currentUser);
+    return currentUser;
   }, []);
 
   const logout = useCallback(async () => {

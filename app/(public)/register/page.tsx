@@ -27,8 +27,8 @@ export default function RegisterPage() {
     setError("");
     setIsLoading(true);
     try {
-      await register(fullName, phone, email, password);
-      router.push("/profile");
+      const registeredUser = await register(fullName, phone, email, password);
+      router.push(registeredUser.role === "admin" ? "/dashboard" : "/profile");
     } catch (error) {
       setError(getErrorMessage(error, dict.auth.register.error));
     } finally {

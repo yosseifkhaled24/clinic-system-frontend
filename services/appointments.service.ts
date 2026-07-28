@@ -22,33 +22,10 @@ export const appointmentsService = {
     return unwrapResponse<AppointmentCreateResponse>(response);
   },
 
-  async update(
-  id: number,
-  payload: AppointmentCreatePayload
-) {
-  const formData = new FormData();
-
-  Object.entries(payload).forEach(([key, value]) => {
-    if (
-      value !== undefined &&
-      value !== null
-    ) {
-      formData.append(
-        key,
-        String(value)
-      );
-    }
-  });
-
-  formData.append("_method", "PATCH");
-
-  const response = await api.post(
-    `/appointments/${id}`,
-    formData
-  );
-
-  return unwrapResponse<Appointment>(response);
-},
+  async update(id: number, payload: AppointmentCreatePayload) {
+    const response = await api.patch(`/appointments/${id}`, payload);
+    return unwrapResponse<Appointment>(response);
+  },
 
   async updateStatus(id: number, status: string) {
     const response = await api.patch(`/appointments/${id}/status`, {
@@ -57,19 +34,15 @@ export const appointmentsService = {
 
     return unwrapResponse(response);
   },
-   async updatePayment(
-  id: number,
-  paymentMethod:
-    | "cash"
-    | "visa"
-    | "stripe"
-    | "instapay"
-    | "vodafone_cash"
-) {
-  return api.patch(`/appointments/${id}/payment`, {
-    payment_method: paymentMethod,
-  });
-},
+  async updatePayment(
+    id: number,
+    paymentMethod: "cash" | "visa" | "stripe" | "instapay" | "vodafone_cash"
+  ) {
+    const response = await api.patch(`/appointments/${id}/payment`, {
+      payment_method: paymentMethod,
+    });
+    return unwrapResponse(response);
+  },
 
   async delete(id: number) {
     const response = await api.delete(`/appointments/${id}`);

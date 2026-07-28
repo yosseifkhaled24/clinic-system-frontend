@@ -17,6 +17,7 @@ import { servicesService } from "@/services/services.service";
 
 import { getDictionary } from "@/lib/i18n";
 import { getErrorMessage } from "@/lib/errors";
+import { SkeletonTable } from "@/components/ui/Skeleton";
 
 import type { Service } from "@/types/service";
 
@@ -254,9 +255,7 @@ export default function DashboardServicesPage() {
           </div>
 
           {isLoading ? (
-            <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center text-slate-500 shadow-sm">
-              Loading services...
-            </div>
+            <SkeletonTable rows={5} cols={3} />
           ) : (
             <ServiceTable
               services={filteredServices}

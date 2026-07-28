@@ -16,6 +16,8 @@ import { patientsService } from "@/services/patients.service";
 
 import { getDictionary } from "@/lib/i18n";
 import { getErrorMessage } from "@/lib/errors";
+import { SkeletonTable } from "@/components/ui/Skeleton";
+
 
 import type { Patient } from "@/types/patient";
 
@@ -206,7 +208,7 @@ export default function DashboardPatientsPage() {
         </div>
 
         {isLoading ? (
-          <p>Loading...</p>
+          <SkeletonTable rows={5} cols={4} />
         ) : (
           <PatientTable
             patients={filteredPatients}

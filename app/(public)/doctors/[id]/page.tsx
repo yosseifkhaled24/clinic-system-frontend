@@ -6,18 +6,21 @@ import { useParams } from "next/navigation";
 
 import { Container } from "@/components/layout/Container";
 import { ApiImage } from "@/components/ui/ApiImage";
-import { Button } from "@/components/ui/Button";
 
 import { getErrorMessage } from "@/lib/errors";
+import { useLanguage } from "@/context/LanguageContext";
+import { getDictionary } from "@/lib/i18n";
+
 import { doctorsService } from "@/services/doctors.service";
 import { schedulesService } from "@/services/schedules.service";
 
 import type { Schedule } from "@/types/schedule";
-
 import type { Doctor } from "@/types/doctor";
 
 export default function DoctorDetailsPage() {
   const params = useParams<{ id: string }>();
+  const { language } = useLanguage();
+  const dict = getDictionary(language);
 
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -29,167 +32,110 @@ export default function DoctorDetailsPage() {
 
     if (!Number.isFinite(id)) return;
 
-   Promise.all([
-  doctorsService.getById(id),
-  schedulesService.getByDoctor(id),
-])
-  .then(([doctor, schedules]) => {
-    setDoctor(doctor);
-    setSchedules(schedules);
-  })
-  .catch((error) => {
-    setError(getErrorMessage(error, "Unable to load doctor."));
-    setDoctor(null);
-  })
-  .finally(() => setIsLoading(false));
+    Promise.all([
+      doctorsService.getById(id),
+      schedulesService.getByDoctor(id),
+    ])
+      .then(([doctor, schedules]) => {
+        setDoctor(doctor);
+        setSchedules(schedules);
+      })
+      .catch((error) => {
+        setError(getErrorMessage(error, "Unable to load doctor."));
+        setDoctor(null);
+      })
+      .finally(() => setIsLoading(false));
   }, [params.id]);
 
   return (
     <Container className="py-16">
       {isLoading && (
         <div className="rounded-3xl bg-white p-10 text-center shadow">
-          Loading...
+          {dict.profile.loading}
         </div>
       )}
 
-      {!isLoading && error && (
-        <div className="rounded-3xl bg-white p-10 text-center text-red-600 shadow">
+      {error && (
+        <div className="rounded-3xl bg-red-50 p-6 text-center text-red-600">
           {error}
         </div>
       )}
 
-      {!isLoading && !error && !doctor && (
-        <div className="rounded-3xl bg-white p-10 text-center shadow">
-          Doctor not found.
+      {!isLoading && !error && doctor && (
+        <div className="grid gap-12 lg:grid-cols-3">
+          <div className="overflow-hidden rounded-3xl bg-white shadow">
+            <ApiImage
+              src={doctor.image_url}
+              alt={doctor.name}
+              className="h-80 w-full object-cover"
+              fallbackClassName="flex h-80 items-center justify-center bg-slate-100 text-slate-400"
+            />
+
+            <div className="p-6">
+              <h1 className="text-2xl font-bold text-slate-900">
+                {doctor.name}
+              </h1>
+
+              <p className="mt-2 text-sky-600">
+                {doctor.specialty || dict.home.doctorCard.specialist}
+              </p>
+
+              <p className="mt-4 text-sm text-slate-500">
+                {doctor.bio || "Professional medical specialist."}
+              </p>
+            </div>
+          </div>
+
+          <div className="lg:col-span-2 rounded-3xl bg-white p-8 shadow">
+            <h2 className="text-2xl font-bold text-slate-900">
+              {dict.doctors.workingHours}
+            </h2>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              {schedules.map((schedule) => (
+                <div
+                  key={schedule.id}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-5"
+                >
+                  <p className="font-bold text-slate-900">
+                    {schedule.day}
+                  </p>
+
+                  <p
+                    dir="ltr"
+                    className="mt-2 text-center font-medium text-slate-700"
+                  >
+                    {schedule.start_time.slice(0, 5)} →{" "}
+                    {schedule.end_time.slice(0, 5)}
+                  </p>
+
+                  <p className="mt-2 text-sm text-slate-500">
+                    {dict.booking.maxPatients} {schedule.max_patients}
+                  </p>
+                </div>
+              ))}
+
+              {schedules.length === 0 && (
+                <p className="text-slate-500">{dict.doctors.noSchedules}</p>
+              )}
+            </div>
+
+            <div className="mt-10 flex flex-wrap gap-4">
+              <Link href={`/booking?doctor=${doctor.id}`}>
+                <button className="rounded-2xl bg-black px-8 py-4 text-base font-semibold text-white transition-none">
+                  {dict.doctors.bookAppointment}
+                </button>
+              </Link>
+
+              <Link href="/doctors">
+                <button className="rounded-2xl border border-slate-300 bg-transparent px-8 py-4 text-base font-semibold text-slate-700 transition-none">
+                  {dict.doctors.backToDoctors}
+                </button>
+              </Link>
+            </div>
+          </div>
         </div>
       )}
-
-      {!isLoading && !error && doctor && (
-         <div className="rounded-[32px] border border-slate-200 bg-white p-10 shadow-xl">
-
-<div className="grid gap-10 lg:grid-cols-[380px_1fr]">
-
-<div>
-
-<ApiImage
-  src={doctor.image_url}
-  alt={doctor.name}
-  className="h-[500px] w-full rounded-[28px] object-cover"
-  fallbackClassName="flex h-[500px] w-full items-center justify-center rounded-[28px] bg-slate-100"
-/>
-
-</div>
-
-<div className="flex flex-col justify-center">
-
-<span className="w-fit rounded-full bg-sky-100 px-4 py-2 text-sm font-semibold text-sky-700">
-
-{doctor.specialty || "Specialist"}
-
-</span>
-
-<h1 className="mt-5 text-5xl font-bold text-slate-900">
-
-{doctor.name}
-
-</h1>
-
-<p className="mt-8 text-lg leading-9 text-slate-600">
-
-{doctor.bio || "No biography available."}
-
-</p>
-
-<div className="mt-10 grid gap-5 md:grid-cols-2">
-  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
-
-  <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-    Phone
-  </h3>
-
-  <p className="mt-3 text-xl font-bold text-slate-900">
-    {doctor.phone || "Not Available"}
-  </p>
-
- </div>
-
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
-
-  <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-    Email
-  </h3>
-
-  <p className="mt-3 break-all text-lg font-semibold text-slate-900">
-    {doctor.email || "Not Available"}
-  </p>
-
-</div>
-
-</div>
-<div className="mt-10">
-  <h2 className="mb-5 text-2xl font-bold text-slate-900">
-    Working Schedule
-  </h2>
-
-  <div className="grid gap-4 md:grid-cols-2">
-    {schedules
-      .filter((schedule) => schedule.is_available)
-      .map((schedule) => (
-       <div
-  key={schedule.id}
-  className="rounded-2xl border border-slate-200 bg-slate-50 p-5"
->
-  <p className="font-bold text-slate-900">
-    {schedule.day}
-  </p>
-
-  <p
-    dir="ltr"
-    className="mt-2 text-center font-medium text-slate-700"
-  >
-    {schedule.start_time.slice(0, 5)} →{" "}
-    {schedule.end_time.slice(0, 5)}
-  </p>
-
-  <p className="mt-2 text-sm text-slate-500">
-    Max Patients: {schedule.max_patients}
-  </p>
-</div>
-      ))}
-  </div>
-</div>
-
-<div className="mt-10 flex flex-wrap gap-4">
-   <Link href={`/booking?doctor=${doctor.id}`}>
-
-  <Button className="px-8 py-4">
-    Book Appointment
-  </Button>
-
-</Link>
-
-<Link href="/doctors">
-
-  <Button
-    variant="ghost"
-    className="px-8 py-4"
-  >
-    Back To Doctors
-  </Button>
-
-</Link>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-)}
     </Container>
   );
 }
-
-         

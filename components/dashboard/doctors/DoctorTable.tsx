@@ -21,19 +21,19 @@ export default function DoctorTable({
 
         <table className="min-w-full">
 
-          <thead className="bg-slate-50">
+          <thead className="border-b border-slate-200 bg-slate-50">
 
-            <tr className="border-b border-slate-200">
+            <tr>
 
-              <th className="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-5 text-start text-xs font-bold uppercase tracking-wider text-slate-500">
                 Doctor
               </th>
 
-              <th className="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-5 text-start text-xs font-bold uppercase tracking-wider text-slate-500">
                 Specialty
               </th>
 
-              <th className="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-5 text-start text-xs font-bold uppercase tracking-wider text-slate-500">
                 Phone
               </th>
 
@@ -45,7 +45,7 @@ export default function DoctorTable({
 
           </thead>
 
-          <tbody>
+          <tbody className="divide-y divide-slate-100">
 
             {doctors.length === 0 && (
               <tr>
@@ -76,7 +76,7 @@ export default function DoctorTable({
 
               <tr
                 key={doctor.id}
-                className="border-b border-slate-100 transition hover:bg-sky-50/40"
+                className="transition hover:bg-slate-50"
               >
 
                 <td className="px-6 py-5">

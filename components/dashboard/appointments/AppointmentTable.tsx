@@ -71,23 +71,22 @@ export default function AppointmentTable({
 
         <table className="min-w-full">
 
-          <thead className="bg-slate-50">
+          <thead className="border-b border-slate-200 bg-slate-50">
 
-            <tr className="border-b border-slate-200">
-
-              <th className="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+            <tr>
+              <th className="px-6 py-5 text-start text-xs font-bold uppercase tracking-wider text-slate-500">
                 Patient
               </th>
 
-              <th className="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-5 text-start text-xs font-bold uppercase tracking-wider text-slate-500">
                 Doctor
               </th>
 
-              <th className="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-5 text-start text-xs font-bold uppercase tracking-wider text-slate-500">
                 Date
               </th>
 
-              <th className="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-5 text-start text-xs font-bold uppercase tracking-wider text-slate-500">
                 Status
               </th>
 
@@ -99,7 +98,7 @@ export default function AppointmentTable({
 
           </thead>
 
-          <tbody>
+          <tbody className="divide-y divide-slate-100">
 
             {appointments.length === 0 && (
 
@@ -135,7 +134,7 @@ export default function AppointmentTable({
             {appointments.map((appointment) => (
                             <tr
                 key={appointment.id}
-                className="border-b border-slate-100 transition hover:bg-sky-50/40"
+                className="transition hover:bg-slate-50"
               >
                 <td className="px-6 py-5">
                   <div>

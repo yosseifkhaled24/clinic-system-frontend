@@ -16,16 +16,49 @@ export default function AppointmentsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    appointmentsService
-      .getAll()
-      .then((response) => {
-        setAppointments(response);
-      })
-      .catch((error) => {
-        setError(getErrorMessage(error, "Unable to load appointments."));
-        setAppointments([]);
-      })
-      .finally(() => setIsLoading(false));
+    let isMounted = true;
+
+    const loadInitial = () => {
+      setIsLoading(true);
+
+      appointmentsService
+        .getAll()
+        .then((response) => {
+          if (!isMounted) return;
+          setAppointments(response);
+        })
+        .catch((error) => {
+          if (!isMounted) return;
+          setError(getErrorMessage(error, "Unable to load appointments."));
+          setAppointments([]);
+        })
+        .finally(() => {
+          if (!isMounted) return;
+          setIsLoading(false);
+        });
+    };
+
+    const refresh = () => {
+      appointmentsService
+        .getAll()
+        .then((response) => {
+          if (!isMounted) return;
+          setAppointments(response);
+          setError("");
+        })
+        .catch(() => {
+          // Preserve current appointments while background refresh fails.
+        });
+    };
+
+    loadInitial();
+
+    const interval = setInterval(refresh, 15000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const handlePayment = async (appointmentId: number) => {

@@ -21,17 +21,17 @@ export default function PatientTable({
     <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
         <table className="min-w-full">
-          <thead className="bg-slate-50">
-            <tr className="border-b border-slate-200">
-              <th className="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+          <thead className="border-b border-slate-200 bg-slate-50">
+            <tr>
+              <th className="px-6 py-5 text-start text-xs font-bold uppercase tracking-wider text-slate-500">
                 Patient
               </th>
 
-              <th className="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-5 text-start text-xs font-bold uppercase tracking-wider text-slate-500">
                 Phone
               </th>
 
-              <th className="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-5 text-start text-xs font-bold uppercase tracking-wider text-slate-500">
                 Gender
               </th>
 
@@ -41,7 +41,7 @@ export default function PatientTable({
             </tr>
           </thead>
 
-          <tbody>
+          <tbody className="divide-y divide-slate-100">
             {patients.length === 0 && (
               <tr>
                 <td
@@ -67,7 +67,7 @@ export default function PatientTable({
             {patients.map((patient) => (
               <tr
                 key={patient.id}
-                className="border-b border-slate-100 transition hover:bg-sky-50/40"
+                className="transition hover:bg-slate-50"
               >
                 <td className="px-6 py-5">
                   <div>
