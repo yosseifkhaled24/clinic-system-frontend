@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 
+import { useLanguage } from "@/context/LanguageContext";
 import { patientsService } from "@/services/patients.service";
 
 import type { PatientHistoryResponse } from "@/types/patient-history";
@@ -15,6 +16,7 @@ import { getErrorMessage } from "@/lib/errors";
 export default function PatientHistoryPage() {
   const router = useRouter();
   const params = useParams();
+  const { language } = useLanguage();
 
   const patientId = Number(params.id);
   console.log("params:", params);
@@ -228,7 +230,7 @@ console.log("patientId:", patientId);
 
         <StatCard
           title="Last Visit"
-          value={statistics.last_visit ?? "-"}
+          value={formatHistoryDate(statistics.last_visit, language)}
         />
 
       </div>
@@ -290,28 +292,28 @@ console.log("patientId:", patientId);
 
                 </div>
 
-                <div className="space-y-3 text-right">
-
+                <div className="flex min-w-0 flex-col items-end gap-3 text-end">
                   <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-700">
-                    {visit.appointment_status}
+                    {getStatusLabel(visit.appointment_status, language)}
                   </span>
 
-                  <p className="font-semibold">
+                  <p className="font-semibold text-slate-900">
                     {visit.price} EGP
                   </p>
 
-                  <p>
-                    Payment:
-                    {" "}
-                    {visit.payment.status}
+                  <p className="text-slate-600 break-words">
+                    <span className="font-medium text-slate-900">
+                      Payment:
+                    </span>{" "}
+                    {getPaymentStatusLabel(visit.payment.status, language)}
                   </p>
 
-                  <p>
-                    Method:
-                    {" "}
-                    {visit.payment.method}
+                  <p className="text-slate-600 break-words">
+                    <span className="font-medium text-slate-900">
+                      Method:
+                    </span>{" "}
+                    {getPaymentMethod(visit.payment.method)}
                   </p>
-
                 </div>
 
               </div>
@@ -360,6 +362,7 @@ console.log("patientId:", patientId);
 
   </DashboardLayout>
 );
+}
 function StatCard({
   title,
   value,
@@ -368,14 +371,94 @@ function StatCard({
   value: string | number;
 }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="min-w-0 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <p className="text-sm text-slate-500">
         {title}
       </p>
 
-      <h3 className="mt-3 text-4xl font-bold text-slate-900">
+      <h3 className="mt-3 break-words whitespace-normal text-4xl font-bold text-slate-900">
         {value}
       </h3>
     </div>
   );
-}}
+}
+
+function formatHistoryDate(value: string | null, language: string) {
+  if (!value) {
+    return "-";
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(language === "ar" ? "ar-SA" : "en-US", {
+    day: "numeric",
+    month: language === "en" ? "short" : "long",
+    year: "numeric",
+    numberingSystem: "latn",
+  }).format(parsed);
+}
+
+function getStatusLabel(status: string | null, language: string) {
+  if (!status) {
+    return "—";
+  }
+
+  const labels = {
+    en: {
+      pending: "Pending",
+      in_progress: "In Progress",
+      completed: "Completed",
+      cancelled: "Cancelled",
+      arrived: "Arrived",
+    },
+    ar: {
+      pending: "قيد الانتظار",
+      in_progress: "قيد التنفيذ",
+      completed: "مكتمل",
+      cancelled: "ملغى",
+      arrived: "وصل",
+    },
+  } as const;
+
+  return (
+    labels[language as keyof typeof labels][
+      status as keyof typeof labels["en"]
+    ] ??
+    status
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+  );
+}
+
+function getPaymentStatusLabel(status: string | null, language: string) {
+  if (!status) {
+    return "—";
+  }
+
+  const labels = {
+    en: {
+      paid: "Paid",
+      unpaid: "Unpaid",
+    },
+    ar: {
+      paid: "مدفوع",
+      unpaid: "غير مدفوع",
+    },
+  } as const;
+
+  return (
+    labels[language as keyof typeof labels][
+      status as keyof typeof labels["en"]
+    ] ??
+    status
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+  );
+}
+
+function getPaymentMethod(method: string | null) {
+  return method?.trim() || "—";
+}
