@@ -2,29 +2,57 @@
 
 import { useState } from "react";
 
-import { appointmentsService } from "@/services/appointments.service";
+import { cairoToday } from "@/lib/dates";
 
-import type { Appointment } from "@/types/appointment";
+import type {
+  Appointment,
+  PaymentMethod,
+} from "@/types/appointment";
 
 interface AppointmentTableProps {
   appointments: Appointment[];
   onEdit: (appointment: Appointment) => void;
   onCancel: (appointment: Appointment) => void;
+  /** D: direct status transitions (Start / Skip) without opening Edit. */
+  onStatusChange: (
+    appointment: Appointment,
+    status:
+      | "arrived"
+      | "in_progress"
+      | "no_show"
+  ) => Promise<void>;
+  /** A/B: opens the Complete + payment dialog for the current patient. */
+  onComplete: (appointment: Appointment) => void;
   onReceivePayment: (
     appointment: Appointment,
-    method:
-      | "cash"
-      | "visa"
-      | "stripe"
-      | "instapay"
-      | "vodafone_cash"
+    method: PaymentMethod
   ) => Promise<void>;
 }
+
+const PAYMENT_METHODS: PaymentMethod[] = [
+  "cash",
+  "visa",
+  "insurance",
+  "stripe",
+  "instapay",
+  "vodafone_cash",
+];
+
+const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  cash: "Cash",
+  visa: "Visa",
+  insurance: "Insurance",
+  stripe: "Stripe",
+  instapay: "InstaPay",
+  vodafone_cash: "Vodafone Cash",
+};
 
 export default function AppointmentTable({
   appointments,
   onEdit,
   onCancel,
+  onStatusChange,
+  onComplete,
   onReceivePayment,
 }: AppointmentTableProps) {
   const [loadingId, setLoadingId] =
@@ -43,25 +71,41 @@ export default function AppointmentTable({
     }
   };
 
-  async function receivePayment(
-    appointment: Appointment,
-    method:
-      | "cash"
-      | "visa"
-      | "stripe"
-      | "instapay"
-      | "vodafone_cash"
+  /**
+   * D: an appointment is "expired" once its clinic day has passed while
+   * the patient never reached a resolution (still pending/arrived/in
+   * progress). The cleanup command turns these into deletions or no_shows
+   * after the day ends.
+   */
+  function isExpired(appointment: Appointment) {
+    return (
+      appointment.appointment_date < cairoToday() &&
+      ["pending", "arrived", "in_progress"].includes(
+        appointment.status
+      )
+    );
+  }
+
+  async function runAction(
+    appointment: number,
+    action: () => Promise<unknown>
   ) {
     try {
-      setLoadingId(appointment.id);
+      setLoadingId(appointment);
 
-      await onReceivePayment(
-        appointment,
-        method
-      );
+      await action();
     } finally {
       setLoadingId(null);
     }
+  }
+
+  async function receivePayment(
+    appointment: Appointment,
+    method: PaymentMethod
+  ) {
+    await runAction(appointment.id, () =>
+      onReceivePayment(appointment, method)
+    );
   }
 
   return (
@@ -170,6 +214,25 @@ export default function AppointmentTable({
                       </span>
                     )}
 
+                    {isExpired(appointment) && (
+                      <div>
+                        <span className="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                          ⏰ Expired
+                        </span>
+                      </div>
+                    )}
+
+                    {appointment.needs_investigation && (
+                      <div>
+                        <span
+                          title="Completed but never paid — flagged by the end-of-day cleanup and excluded from revenue."
+                          className="inline-flex rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700"
+                        >
+                          ⚠️ Needs review
+                        </span>
+                      </div>
+                    )}
+
                     <div className="mt-2">
                       <span
                         className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
@@ -198,6 +261,50 @@ export default function AppointmentTable({
 
                 <td className="px-6 py-5">
                   <div className="flex justify-center gap-3 flex-wrap">
+                    {/* A: direct queue actions — Start / Skip / Complete
+                        without opening the Edit form. */}
+                    {(appointment.status === "pending" ||
+                      appointment.status === "arrived") && (
+                      <>
+                        <button
+                          disabled={loadingId === appointment.id}
+                          onClick={() =>
+                            runAction(appointment.id, () =>
+                              onStatusChange(
+                                appointment,
+                                "in_progress"
+                              )
+                            )
+                          }
+                          className="rounded-xl border border-green-200 px-4 py-2 text-sm font-medium text-green-700 transition-all hover:bg-green-50 disabled:opacity-50"
+                        >
+                          ▶️ Start
+                        </button>
+
+                        <button
+                          disabled={loadingId === appointment.id}
+                          onClick={() =>
+                            runAction(appointment.id, () =>
+                              onStatusChange(appointment, "no_show")
+                            )
+                          }
+                          className="rounded-xl border border-amber-200 px-4 py-2 text-sm font-medium text-amber-700 transition-all hover:bg-amber-50 disabled:opacity-50"
+                        >
+                          ⏭️ Skip
+                        </button>
+                      </>
+                    )}
+
+                    {appointment.status === "in_progress" && (
+                      <button
+                        disabled={loadingId === appointment.id}
+                        onClick={() => onComplete(appointment)}
+                        className="rounded-xl border border-sky-200 px-4 py-2 text-sm font-medium text-sky-700 transition-all hover:bg-sky-50 disabled:opacity-50"
+                      >
+                        ✅ Complete
+                      </button>
+                    )}
+
                     <button
                       onClick={() => onEdit(appointment)}
                       className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-all hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
@@ -221,12 +328,7 @@ export default function AppointmentTable({
 
                           receivePayment(
                             appointment,
-                            e.target.value as
-                              | "cash"
-                              | "visa"
-                              | "stripe"
-                              | "instapay"
-                              | "vodafone_cash"
+                            e.target.value as PaymentMethod
                           );
 
                           e.target.selectedIndex = 0;
@@ -237,25 +339,14 @@ export default function AppointmentTable({
                           💰 Receive Payment
                         </option>
 
-                        <option value="cash">
-                          Cash
-                        </option>
-
-                        <option value="visa">
-                          Visa
-                        </option>
-
-                        <option value="stripe">
-                          Stripe
-                        </option>
-
-                        <option value="instapay">
-                          InstaPay
-                        </option>
-
-                        <option value="vodafone_cash">
-                          Vodafone Cash
-                        </option>
+                        {PAYMENT_METHODS.map((method) => (
+                          <option
+                            key={method}
+                            value={method}
+                          >
+                            {PAYMENT_METHOD_LABELS[method]}
+                          </option>
+                        ))}
                       </select>
                     )}
                   </div>

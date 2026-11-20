@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -12,6 +12,7 @@ import { patientsService } from "@/services/patients.service";
 import type { PatientHistoryResponse } from "@/types/patient-history";
 
 import { getErrorMessage } from "@/lib/errors";
+import { parseDateOnly } from "@/lib/dates";
 
 export default function PatientHistoryPage() {
   const router = useRouter();
@@ -19,9 +20,6 @@ export default function PatientHistoryPage() {
   const { language } = useLanguage();
 
   const patientId = Number(params.id);
-  console.log("params:", params);
-console.log("id:", params.id);
-console.log("patientId:", patientId);
 
   const [data, setData] =
     useState<PatientHistoryResponse | null>(null);
@@ -30,21 +28,38 @@ console.log("patientId:", patientId);
 
   const [error, setError] = useState("");
 
+  // A6: monotonically increasing request id. Only the LATEST request is
+  // allowed to write state, so a slow response for a previous patient
+  // can never overwrite the screen after the params change (or after a
+  // manual retry races the original load).
+  const requestIdRef = useRef(0);
+
   useEffect(() => {
     loadHistory();
-  }, []);
+    // Re-fetch whenever the addressed patient changes; the guard above
+    // discards any response that is no longer the current request.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientId]);
 
   async function loadHistory() {
+    const requestId = ++requestIdRef.current;
+
     try {
       setIsLoading(true);
 
       const response =
         await patientsService.getHistory(patientId);
 
+      // A stale response (an earlier request for another patient, or a
+      // superseded retry) must not clobber the current screen.
+      if (requestId !== requestIdRef.current) return;
+
       setData(response);
 
       setError("");
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
+
       setError(
         getErrorMessage(
           err,
@@ -52,7 +67,9 @@ console.log("patientId:", patientId);
         )
       );
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }
 
@@ -388,7 +405,12 @@ function formatHistoryDate(value: string | null, language: string) {
     return "-";
   }
 
-  const parsed = new Date(value);
+  // Date-only values are calendar dates, not instants: parse them in
+  // local time so the day doesn't shift back in UTC-negative browsers.
+  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? parseDateOnly(value)
+    : new Date(value);
+
   if (Number.isNaN(parsed.getTime())) {
     return value;
   }

@@ -30,12 +30,20 @@ export default function DoctorDetailsPage() {
   useEffect(() => {
     const id = Number(params.id);
 
-    if (!Number.isFinite(id)) return;
+    // A5: an unparseable id must travel through the SAME promise chain
+    // below — its .catch()/.finally() are what set the error and clear
+    // the spinner. The old early return skipped that chain entirely, so
+    // the page spun forever; and a synchronous setState directly in the
+    // effect body is not allowed either (react-hooks/set-state-in-effect),
+    // so the guard is modelled as a rejection handled in callbacks.
+    const load: Promise<[Doctor, Schedule[]]> = Number.isFinite(id)
+      ? Promise.all([
+          doctorsService.getById(id),
+          schedulesService.getByDoctor(id),
+        ])
+      : Promise.reject(new Error("Invalid doctor id"));
 
-    Promise.all([
-      doctorsService.getById(id),
-      schedulesService.getByDoctor(id),
-    ])
+    load
       .then(([doctor, schedules]) => {
         setDoctor(doctor);
         setSchedules(schedules);

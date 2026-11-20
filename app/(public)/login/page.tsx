@@ -7,8 +7,11 @@ import { Container } from "@/components/layout/Container";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { getErrorMessage } from "@/lib/errors";
+import { getErrorCode, getErrorMessage, getErrorStatus } from "@/lib/errors";
 import { getDictionary } from "@/lib/i18n";
+import { authService } from "@/services/auth.service";
+
+type Notice = { tone: "ok" | "error"; text: string } | null;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,6 +23,13 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // SEC-03: set when the backend rejects the login because the address
+  // is not verified yet (403, code=email_not_verified). The panel offers
+  // the credential-gated resend action.
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resendNotice, setResendNotice] = useState<Notice>(null);
+  const [isResending, setIsResending] = useState(false);
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
@@ -28,9 +38,36 @@ export default function LoginPage() {
       const loggedInUser = await login(email, password);
       router.push(loggedInUser.role === "admin" ? "/dashboard" : "/profile");
     } catch (error) {
-      setError(getErrorMessage(error, dict.auth.login.error));
+      if (getErrorStatus(error) === 403 && getErrorCode(error) === "email_not_verified") {
+        setNeedsVerification(true);
+        setResendNotice(null);
+        setError("");
+      } else if (getErrorStatus(error) === 429) {
+        setError(dict.auth.login.throttle);
+      } else {
+        setError(getErrorMessage(error, dict.auth.login.error));
+      }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setResendNotice(null);
+    setIsResending(true);
+    try {
+      await authService.resendVerification({ email, password });
+      setResendNotice({ tone: "ok", text: dict.auth.login.resendSent });
+    } catch (error) {
+      setResendNotice({
+        tone: "error",
+        text:
+          getErrorStatus(error) === 429
+            ? dict.auth.login.resendThrottle
+            : getErrorMessage(error, dict.auth.login.resendError),
+      });
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -60,6 +97,30 @@ export default function LoginPage() {
               className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-sky-500 focus:outline-none"
             />
           </div>
+          {needsVerification ? (
+            <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <p>{dict.auth.login.verifyNotice}</p>
+              {resendNotice ? (
+                <p
+                  className={`rounded-lg border px-3 py-2 text-sm ${
+                    resendNotice.tone === "ok"
+                      ? "border-sky-200 bg-sky-50 text-sky-700"
+                      : "border-rose-200 bg-rose-50 text-rose-600"
+                  }`}
+                >
+                  {resendNotice.text}
+                </p>
+              ) : null}
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={isResending}
+                onClick={handleResend}
+              >
+                {isResending ? dict.dashboard.loading : dict.auth.login.resend}
+              </Button>
+            </div>
+          ) : null}
           {error ? <p className="text-sm text-rose-600">{error}</p> : null}
           <Button type="submit" className="w-full" disabled={isLoading}>{isLoading ? dict.dashboard.loading : dict.auth.login.submit}</Button>
         </form>

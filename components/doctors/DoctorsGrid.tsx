@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 
 import { doctorsService } from "@/services/doctors.service";
+import { specialtiesService } from "@/services/specialties.service";
 import type { Doctor } from "@/types/doctor";
+import type { Specialty } from "@/types/specialty";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useLanguage } from "@/context/LanguageContext";
 import { getDictionary } from "@/lib/i18n";
@@ -16,15 +18,39 @@ export default function DoctorsGrid() {
   const dict = getDictionary(language);
 
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [specialties, setSpecialties] = useState<Specialty[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
+  // "" = all specialties; otherwise the canonical specialty_id, applied
+  // SERVER-side via GET /api/doctors?specialty_id= (Smart Booking).
+  const [selectedSpecialtyId, setSelectedSpecialtyId] = useState("");
+
   useEffect(() => {
+    specialtiesService
+      .getAll()
+      .then(setSpecialties)
+      .catch(() => setSpecialties([]));
+
     doctorsService
       .getAll()
       .then((data) => setDoctors(data))
+      // A4: never leave an unhandled rejection when the list request
+      // fails — fall back to the empty state the grid already renders.
+      .catch(() => setDoctors([]))
       .finally(() => setLoading(false));
   }, []);
+
+  function handleSpecialtyChange(id: string) {
+    setSelectedSpecialtyId(id);
+    setLoading(true);
+
+    doctorsService
+      .getAll(id ? { specialty_id: Number(id) } : undefined)
+      .then(setDoctors)
+      .catch(() => setDoctors([]))
+      .finally(() => setLoading(false));
+  }
 
   const filteredDoctors = useMemo(() => {
     return doctors.filter((doctor) =>
@@ -60,6 +86,29 @@ export default function DoctorsGrid() {
             />
           </div>
         </div>
+
+        {/* Specialty filter chips (server-side filtering, Smart Booking) */}
+        {specialties.length > 0 && (
+          <div className="mb-8 flex flex-wrap gap-2">
+            {[
+              { id: "", name: dict.booking.allSpecialties },
+              ...specialties,
+            ].map((specialty) => (
+              <button
+                key={specialty.id || "all"}
+                type="button"
+                onClick={() => handleSpecialtyChange(String(specialty.id))}
+                className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
+                  selectedSpecialtyId === String(specialty.id)
+                    ? "border-sky-500 bg-sky-50 text-sky-700"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-sky-300"
+                }`}
+              >
+                {specialty.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         {loading ? (
           <div className="grid gap-6 sm:gap-8 md:grid-cols-2 xl:grid-cols-3">

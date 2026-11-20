@@ -73,7 +73,10 @@ export default function Testimonials() {
                 </p>
 
                 <div className="mt-8">
-                  <h3 className="font-bold text-slate-900">{review.user.name}</h3>
+                  {/* SEC-20: anonymized public reads return name: null */}
+                  <h3 className="font-bold text-slate-900">
+                    {review.user.name ?? dict.reviews.anonymous}
+                  </h3>
 
                   <p className="text-sm text-slate-500">
                     {dict.home.testimonials.patient} • {review.doctor.name}

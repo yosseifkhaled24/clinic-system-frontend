@@ -13,6 +13,8 @@ import { profileService } from "@/services/profile.service";
 import { doctorsService } from "@/services/doctors.service";
 import { appointmentsService } from "@/services/appointments.service";
 
+import { useVisibilityPoll } from "@/hooks/useVisibilityPoll";
+
 import type { AuthUser } from "@/types/auth";
 import type { Doctor } from "@/types/doctor";
 import type { Appointment } from "@/types/appointment";
@@ -67,6 +69,26 @@ export default function ProfilePage() {
         setLoading(false);
       });
   }, [user, authLoading, router]);
+
+  // Background refresh (same cadence as /appointments): keeps status,
+  // payment and review eligibility current when a payment lands or the
+  // admin completes an appointment while the tab is open. Failures keep
+  // the currently displayed list untouched. Phase 1: paused while the
+  // tab is hidden (one catch-up refresh on return) and skipped entirely
+  // while logged out — the same no-request behavior the old
+  // `if (!user) return` guard produced.
+  const refreshAppointments = () => {
+    if (!user) return;
+
+    return appointmentsService
+      .getAll()
+      .then(setAppointments)
+      .catch(() => {
+        // Preserve current appointments while the refresh fails.
+      });
+  };
+
+  useVisibilityPoll(refreshAppointments, 15000);
 
   if (loading) {
     return (

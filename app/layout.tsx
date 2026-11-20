@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { ChatbotWidget } from "@/components/chatbot/ChatbotWidget";
 
 import { AuthProvider } from "@/context/AuthContext";
 import { LanguageProvider } from "@/context/LanguageContext";
@@ -40,6 +41,8 @@ export default function RootLayout({
             </main>
 
             <Footer />
+
+            <ChatbotWidget />
 
           </LanguageProvider>
 

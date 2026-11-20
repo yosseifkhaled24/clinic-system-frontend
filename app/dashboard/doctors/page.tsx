@@ -59,6 +59,17 @@ export default function DashboardDoctorsPage() {
       setDoctors(response);
 
       setError("");
+    } catch (err) {
+      // A3: this rejection used to escape the function (no catch), so the
+      // initial load ended in an unhandled promise rejection and the
+      // error banner below stayed empty. Surface it instead — the stale
+      // list (if any) stays visible underneath.
+      setError(
+        getErrorMessage(
+          err,
+          "Unable to load doctors."
+        )
+      );
     } finally {
       setIsLoading(false);
     }

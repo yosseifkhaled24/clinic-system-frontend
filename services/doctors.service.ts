@@ -3,8 +3,13 @@ import type { Doctor } from "@/types/doctor";
 import { unwrapCollection, unwrapResponse } from "./response";
 
 export const doctorsService = {
-  async getAll() {
-    const response = await api.get("/doctors");
+  /**
+   * Public doctor list. `specialty_id` filters server-side by the
+   * canonical specialties FK (Smart Booking); `search` is the
+   * pre-existing name filter. Unknown filters yield an empty list.
+   */
+  async getAll(params?: { search?: string; specialty_id?: number }) {
+    const response = await api.get("/doctors", { params });
     return unwrapCollection<Doctor>(response);
   },
 

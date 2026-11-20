@@ -2,19 +2,34 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { authService } from "@/services/auth.service";
-import type { AuthUser } from "@/types/auth";
+import type { AuthUser, RegisterResponse } from "@/types/auth";
 
 interface AuthContextValue {
   user: AuthUser | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
-  register: (name: string, phone: string, email: string, password: string) => Promise<AuthUser>;
+  register: (name: string, phone: string, email: string, password: string) => Promise<RegisterResponse>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+/*
+ * SEC-19 (Option A — approved decision): the auth Bearer token is stored
+ * in localStorage ("token") and attached to requests by lib/axios.ts.
+ * We deliberately keep this architecture instead of migrating to
+ * HttpOnly cookies: the API is stateless Bearer-based (no session/CSRF
+ * pipeline) and the Android/Capacitor build (capacitor.config.ts serves
+ * bundled assets) depends on localStorage.
+ *
+ * Residual risk: an XSS payload could steal the token. Mitigations in
+ * place: 30-day token expiration (Sanctum, SEC-14), one-active-token-
+ * per-user on login, automatic removal of rejected tokens on 401, and
+ * the security headers + Report-Only CSP deployed in SEC-17. Enforcing
+ * a strict CSP (nonces instead of 'unsafe-inline') is the follow-up
+ * that would further reduce this risk.
+ */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(() => {
@@ -82,17 +97,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const register = useCallback(async (name: string, phone: string, email: string, password: string) => {
-    const response = await authService.register({
+    // SEC-03: no token is issued at registration. The account is created
+    // unverified, so there is no session to establish here — the register
+    // page renders the verification-required state instead and offers the
+    // resend action.
+    return authService.register({
       name,
       phone,
       email,
       password,
       password_confirmation: password,
     });
-    localStorage.setItem("token", response.token);
-    const currentUser = await authService.getUser();
-    setUser(currentUser);
-    return currentUser;
   }, []);
 
   const logout = useCallback(async () => {

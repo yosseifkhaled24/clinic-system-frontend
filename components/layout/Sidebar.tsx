@@ -18,6 +18,7 @@ import {
   LogOut,
   Building2,
   Home,
+  Tags,
 } from "lucide-react";
 
 import { useLanguage } from "@/context/LanguageContext";
@@ -33,6 +34,7 @@ export function Sidebar() {
   const items = [
     { label: dict.dashboard.overview, href: "/dashboard", icon: LayoutDashboard },
     { label: dict.dashboardPages.doctors.title, href: "/dashboard/doctors", icon: Stethoscope },
+    { label: dict.dashboardPages.specialties.title, href: "/dashboard/specialties", icon: Tags },
     { label: "Doctor Schedules", href: "/dashboard/schedules", icon: CalendarClock },
     { label: dict.dashboardPages.patients.title, href: "/dashboard/patients", icon: Users },
     { label: dict.dashboardPages.services.title, href: "/dashboard/services", icon: ClipboardList },

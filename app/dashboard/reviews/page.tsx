@@ -62,7 +62,9 @@ export default function DashboardReviewsPage() {
 
     setFilteredReviews(
       reviews.filter((review) =>
-        review.user.name
+        // SEC-20: anonymized reads carry name: null (only admins receive
+        // the full shape) — guard so search never throws on null.
+        (review.user.name ?? "")
           .toLowerCase()
           .includes(keyword) ||
         (review.comment ?? "")
@@ -218,7 +220,7 @@ export default function DashboardReviewsPage() {
                       <div>
 
                         <h3 className="text-xl font-bold text-slate-900">
-                          {review.user.name}
+                          {review.user.name ?? dict.reviews.anonymous}
                         </h3>
 
                         <p className="mt-1 text-sm text-slate-500">

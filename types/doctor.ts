@@ -2,6 +2,7 @@ export interface Doctor {
   id: number;
   name: string;
   specialty?: string | null;
+  specialty_id?: number | null;
   email?: string | null;
   phone?: string | null;
   bio?: string | null;

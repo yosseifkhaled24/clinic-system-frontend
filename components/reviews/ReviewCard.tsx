@@ -2,6 +2,8 @@
 
 import { Star } from "lucide-react";
 
+import { useLanguage } from "@/context/LanguageContext";
+import { getDictionary } from "@/lib/i18n";
 import type { Review } from "@/types/review";
 
 type ReviewCardProps = {
@@ -11,6 +13,8 @@ type ReviewCardProps = {
 export default function ReviewCard({
   review,
 }: ReviewCardProps) {
+  const { language } = useLanguage();
+  const dict = getDictionary(language);
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition duration-300 hover:-translate-y-2 hover:shadow-xl">
 
@@ -33,7 +37,9 @@ export default function ReviewCard({
       <div className="mt-8 border-t border-slate-100 pt-5">
 
         <h3 className="font-bold text-slate-900">
-          {review.user.name}
+          {/* SEC-20: public reads are anonymized by the API (name is
+              null); render the neutral label instead of any identity. */}
+          {review.user.name ?? dict.reviews.anonymous}
         </h3>
 
         <p className="mt-1 text-sm text-slate-500">

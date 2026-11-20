@@ -11,7 +11,13 @@ import type { Doctor } from "@/types/doctor";
 import type { Appointment } from "@/types/appointment";
 import { paymentService } from "@/services/payment.service";
 import { getErrorMessage } from "@/lib/errors";
+import { parseDateOnly } from "@/lib/dates";
 import { Button } from "@/components/ui/Button";
+import { ReviewForm } from "@/components/reviews/ReviewForm";
+import { WriteReviewButton } from "@/components/reviews/WriteReviewButton";
+
+import { useReviewForm } from "@/hooks/useReviewForm";
+import { useReviewedAppointmentIds } from "@/hooks/useReviewedAppointmentIds";
 
 type ProfileContentProps = {
   profile: AuthUser | null;
@@ -28,6 +34,12 @@ export default function ProfileContent({
   const { logout } = useAuth();
 
   const [activeTab, setActiveTab] = useState("profile");
+
+  // Review gate: the same shared review state/logic as /appointments
+  // (approved rules: completed + paid + not already reviewed). The
+  // backend remains the authority on every submission.
+  const { reviewedAppointmentIds, markReviewed } = useReviewedAppointmentIds();
+  const reviewForm = useReviewForm(markReviewed);
 
   const handlePayment = async (appointmentId: number) => {
     try {
@@ -161,9 +173,9 @@ export default function ProfileContent({
                         </h3>
 
                         <p className="mt-1 text-sm text-slate-500">
-                          {new Date(
+                          {parseDateOnly(
                             appointment.appointment_date
-                          ).toLocaleString()}
+                          ).toLocaleDateString()}
                         </p>
                       </div>
 
@@ -184,8 +196,21 @@ export default function ProfileContent({
                             Paid
                           </span>
                         )}
+
+                        <WriteReviewButton
+                          appointment={appointment}
+                          reviewedAppointmentIds={reviewedAppointmentIds}
+                          target={reviewForm.target}
+                          onOpen={reviewForm.open}
+                          className="text-xs sm:text-sm px-3.5 py-1.5"
+                        />
                       </div>
                     </div>
+
+                    <ReviewForm
+                      appointment={appointment}
+                      controller={reviewForm}
+                    />
                   </div>
                 ))
               )}

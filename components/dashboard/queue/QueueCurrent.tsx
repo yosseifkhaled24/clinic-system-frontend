@@ -4,10 +4,13 @@ import type { QueuePatient } from "@/types/queue";
 
 interface QueueCurrentProps {
   patient: QueuePatient | null;
+  /** A/B: opens the Complete + payment dialog for the current patient. */
+  onComplete?: (patient: QueuePatient) => void;
 }
 
 export default function QueueCurrent({
   patient,
+  onComplete,
 }: QueueCurrentProps) {
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
@@ -67,6 +70,19 @@ export default function QueueCurrent({
             </div>
 
           </div>
+
+          {/* A/B: finishing the consultation opens the payment dialog —
+              the appointment completes only after the payment succeeds. */}
+          {onComplete && (
+            <div className="mt-8 flex justify-center">
+              <button
+                onClick={() => onComplete(patient)}
+                className="rounded-xl border border-sky-200 bg-white px-6 py-3 text-sm font-semibold text-sky-700 transition-all hover:bg-sky-50"
+              >
+                ✅ Complete Consultation
+              </button>
+            </div>
+          )}
 
         </div>
 

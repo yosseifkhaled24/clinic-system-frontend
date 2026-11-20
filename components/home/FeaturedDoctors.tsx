@@ -23,6 +23,10 @@ export default function FeaturedDoctors() {
       .then((data) => {
         setDoctors(data.slice(0, 3));
       })
+      // A4: a rejected request used to leave an unhandled rejection —
+      // the section then showed an empty grid with no explanation.
+      // Degrade to the existing "no doctors" state instead.
+      .catch(() => setDoctors([]))
       .finally(() => setLoading(false));
   }, []);
 

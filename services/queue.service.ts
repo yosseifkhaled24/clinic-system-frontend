@@ -1,5 +1,5 @@
 import api from "@/lib/axios";
-import type { QueueResponse } from "@/types/queue";
+import type { DoctorQueue, QueueResponse } from "@/types/queue";
 import { unwrapResponse } from "./response";
 
 const emptyQueue: QueueResponse = {
@@ -22,6 +22,15 @@ function normalizeQueue(
   };
 }
 
+function normalizeDoctorQueue(
+  response: DoctorQueue
+): DoctorQueue {
+  return {
+    doctor: response.doctor,
+    ...normalizeQueue(response),
+  };
+}
+
 export const queueService = {
   async today(doctorId: number) {
     const response = await api.get(`/queue/${doctorId}`);
@@ -34,5 +43,20 @@ export const queueService = {
       ...emptyQueue,
       ...queue,
     });
+  },
+
+  /**
+   * All-doctors overview for the queue control center: one entry per
+   * doctor (ordered by name), each with the same {current, waiting,
+   * finished} buckets the single-doctor endpoint returns.
+   */
+  async all() {
+    const response = await api.get("/queue");
+
+    const queues = unwrapResponse<DoctorQueue[]>(response);
+
+    return (Array.isArray(queues) ? queues : []).map(
+      normalizeDoctorQueue
+    );
   },
 };

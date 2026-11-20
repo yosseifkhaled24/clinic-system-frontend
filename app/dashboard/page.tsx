@@ -1,26 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useToast } from "@/components/ui/Toast";
+import { useVisibilityPoll } from "@/hooks/useVisibilityPoll";
 import { getErrorMessage } from "@/lib/errors";
+import { cairoToday } from "@/lib/dates";
 import { getDictionary } from "@/lib/i18n";
 import { appointmentsService } from "@/services/appointments.service";
-import { contactService } from "@/services/contact.service";
 import { dashboardService } from "@/services/dashboard.service";
 import { doctorsService } from "@/services/doctors.service";
-import { patientsService } from "@/services/patients.service";
 import { queueService } from "@/services/queue.service";
-import { reviewsService } from "@/services/reviews.service";
 import { servicesService } from "@/services/services.service";
 import type { Appointment } from "@/types/appointment";
-import type { ContactMessage } from "@/types/contact";
 import type { DashboardOverview } from "@/types/dashboard";
 import type { Doctor } from "@/types/doctor";
-import type { Patient } from "@/types/patient";
 import type { QueueResponse } from "@/types/queue";
-import type { Review } from "@/types/review";
 
 const emptyOverview: DashboardOverview = {
   doctors_count: 0,
@@ -41,34 +39,50 @@ const emptyQueue: QueueResponse = {
   finished: [],
 };
 
-function isToday(date: string) {
-  return date.startsWith(new Date().toISOString().slice(0, 10));
-}
-
 export default function DashboardPage() {
   const { language } = useLanguage();
+  const { user } = useAuth();
   const dict = getDictionary(language);
+  const { showToast, ToastElement } = useToast();
   const [overview, setOverview] = useState<DashboardOverview>(emptyOverview);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [messages, setMessages] = useState<ContactMessage[]>([]);
+  // Phase 2: the appointments list is one server-side page now — the five
+  // rows this card renders. A2: that page is filtered to TODAY, so its
+  // `total` would be today's count; the "All appointments" stat therefore
+  // reads the overview's all-time `appointments_count` instead.
   const [queue, setQueue] = useState<QueueResponse>(emptyQueue);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Part C — cursor for the admin-only "new bookings" feed. `null` means
+  // "not primed yet": the first (cursor-less) call is a baseline that
+  // answers an empty `data` + the current MAX(id), so bookings that
+  // already exist are never toasted as new.
+  const recentCursorRef = useRef<number | null>(null);
+  const recentPrimedRef = useRef(false);
 
   const loadDashboardData = async () => {
     setLoading(true);
     setError("");
 
     try {
-      const [overviewData, appointmentsData, patientsData, reviewsData, messagesData, doctorsData] = await Promise.all([
-        dashboardService.getOverview().catch(() => emptyOverview),
-        appointmentsService.getAll().catch(() => [] as Appointment[]),
-        patientsService.getAll().catch(() => [] as Patient[]),
-        reviewsService.getAll().catch(() => [] as Review[]),
-        contactService.getAll().catch(() => [] as ContactMessage[]),
+      // Phase 1: the overview endpoint already provides every summary
+      // count this page renders, so the patients/reviews/messages full
+      // lists are no longer fetched (the messages list was never even
+      // rendered). The appointments list stays because the "Today's
+      // Appointments" card renders real rows from it — Phase 2 makes it a
+      // single bounded page (per_page: 5), and A2 narrows that page to
+      // TODAY (Africa/Cairo) so the card only ever shows today's rows.
+      //
+      // The overview is the one fetch without a fallback catch: it drives
+      // every stat on the page, so its failure must reach the catch below
+      // and surface the error banner (A3) instead of silently showing 0s.
+      const [overviewData, appointmentsPage, doctorsData] = await Promise.all([
+        dashboardService.getOverview(),
+        appointmentsService
+          .getPage({ per_page: 5, date: cairoToday() })
+          .catch(() => null),
         doctorsService.getAll().catch(() => [] as Doctor[]),
       ]);
 
@@ -78,19 +92,15 @@ export default function DashboardPage() {
         : emptyQueue;
       setOverview(overviewData);
       setDoctors(Array.isArray(doctorsData) ? doctorsData : []);
-      setAppointments(Array.isArray(appointmentsData) ? appointmentsData : []);
-      setPatients(Array.isArray(patientsData) ? patientsData : []);
-      setReviews(Array.isArray(reviewsData) ? reviewsData : []);
-      setMessages(Array.isArray(messagesData) ? messagesData : []);
+      setAppointments(
+        Array.isArray(appointmentsPage?.data) ? appointmentsPage.data : []
+      );
       setQueue(queueData);
     } catch (error) {
-      setError(getErrorMessage(error, "Unable to load dashboard."));
+      setError(getErrorMessage(error, dict.dashboard.loadError));
       setOverview(emptyOverview);
       setDoctors([]);
       setAppointments([]);
-      setPatients([]);
-      setReviews([]);
-      setMessages([]);
       setQueue(emptyQueue);
     } finally {
       setLoading(false);
@@ -107,8 +117,94 @@ export default function DashboardPage() {
     };
   }, []);
 
+  /* ── Part C — admin-only "new bookings" toast ───────────────────── */
+
+  // Best-effort feed: a failed poll must never disturb the dashboard
+  // (useVisibilityPoll swallows rejections too — this try/catch keeps the
+  // error handling local and the loop alive either way).
+  const pollRecentAppointments = async () => {
+    if (user?.role !== "admin") return;
+
+    try {
+      const response = await appointmentsService.getRecent(
+        recentCursorRef.current ?? undefined
+      );
+
+      const rows = Array.isArray(response.data) ? response.data : [];
+
+      if (rows.length > 0) {
+        const newest = rows[rows.length - 1];
+
+        // Advance to the LAST RETURNED row, never `latest_id`: latest_id
+        // is the true MAX(id) and can sit past the 20-row cap, which
+        // would skip bookings that were never reported to this client.
+        recentCursorRef.current = newest.id;
+
+        showToast(
+          newest.patient_name
+            ? `${dict.dashboard.newAppointmentTitle}: ${newest.patient_name}`
+            : dict.dashboard.newAppointmentBody,
+          "success"
+        );
+      } else if (recentCursorRef.current === null) {
+        // Still unprimed (the baseline call above failed earlier): adopt
+        // the server's MAX(id) so the next poll reports only newer rows.
+        recentCursorRef.current = response.latest_id;
+      }
+    } catch {
+      // Transient failure — keep the previous cursor and try again on the
+      // next tick; nothing on screen depends on this feed.
+    }
+  };
+
+  // Prime the cursor once per mount with a cursor-less baseline call
+  // (no `after_id` → empty `data` + current MAX(id)), so bookings that
+  // already exist are never presented as "new". Runs when the caller is
+  // confirmed an admin; a failed prime is repaired by the poll above.
+  useEffect(() => {
+    if (recentPrimedRef.current || user?.role !== "admin") return;
+
+    recentPrimedRef.current = true;
+
+    void (async () => {
+      try {
+        const response = await appointmentsService.getRecent();
+        recentCursorRef.current = response.latest_id;
+      } catch {
+        // Leave the cursor null — pollRecentAppointments re-primes it.
+      }
+    })();
+  }, [user?.role]);
+
+  // 15s cadence while the tab is visible (pauses when hidden, one
+  // catch-up tick on return) — same cadence as the other dashboard pages.
+  useVisibilityPoll(pollRecentAppointments, 15000);
+
   return (
     <DashboardLayout title={dict.dashboard.overviewTitle} description={dict.dashboard.overviewDescription}>
+      {/* A3 — the loading / error states this page always tracked but
+          never showed: a loading line during the first (or a retried)
+          load, and the error banner with a retry action. */}
+      {loading && (
+        <p className="mb-6 text-sm text-slate-500">{dict.dashboard.loading}</p>
+      )}
+
+      {error && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => void loadDashboardData()}
+            className="rounded-xl border border-red-200 bg-white px-4 py-2 font-semibold text-red-600 transition hover:bg-red-100"
+          >
+            {dict.dashboard.retry}
+          </button>
+        </div>
+      )}
+
+      {/* Part C — "new appointment" toast (4s auto-dismiss). */}
+      {ToastElement}
+
       {/* Hero */}
       <section className="mb-8 overflow-hidden rounded-3xl bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700 p-6 sm:p-8 text-white shadow-xl">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -177,19 +273,21 @@ export default function DashboardPage() {
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
             <p className="text-sm text-slate-500">{dict.dashboard.patients}</p>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-bold text-slate-900">{patients.length}</h2>
+            <h2 className="mt-3 text-3xl sm:text-4xl font-bold text-slate-900">{overview.patients_count}</h2>
             <p className="mt-3 text-sm text-emerald-600">{dict.dashboard.totalPatients}</p>
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
             <p className="text-sm text-slate-500">{dict.dashboard.appointments}</p>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-bold text-slate-900">{appointments.length}</h2>
+            {/* A2: the row list is filtered to today, so its `total` is
+                today's count — this all-time stat reads the overview. */}
+            <h2 className="mt-3 text-3xl sm:text-4xl font-bold text-slate-900">{overview.appointments_count}</h2>
             <p className="mt-3 text-sm text-orange-600">{dict.dashboard.allAppointments}</p>
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
             <p className="text-sm text-slate-500">{dict.dashboard.reviews}</p>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-bold text-slate-900">{reviews.length}</h2>
+            <h2 className="mt-3 text-3xl sm:text-4xl font-bold text-slate-900">{overview.reviews_count}</h2>
             <p className="mt-3 text-sm text-pink-600">{dict.dashboard.patientReviews}</p>
           </div>
         </div>
@@ -292,7 +390,7 @@ export default function DashboardPage() {
                 👥
               </div>
               <div>
-                <p className="font-semibold">{patients.length} {dict.dashboard.totalPatients}</p>
+                <p className="font-semibold">{overview.patients_count} {dict.dashboard.totalPatients}</p>
                 <p className="text-sm text-slate-500">{dict.dashboard.stats.active}</p>
               </div>
             </div>
@@ -302,7 +400,7 @@ export default function DashboardPage() {
                 📅
               </div>
               <div>
-                <p className="font-semibold">{appointments.length} {dict.dashboard.allAppointments}</p>
+                <p className="font-semibold">{overview.appointments_count} {dict.dashboard.allAppointments}</p>
                 <p className="text-sm text-slate-500">{dict.dashboard.overviewTitle}</p>
               </div>
             </div>
@@ -312,7 +410,7 @@ export default function DashboardPage() {
                 ⭐
               </div>
               <div>
-                <p className="font-semibold">{reviews.length} {dict.dashboard.patientReviews}</p>
+                <p className="font-semibold">{overview.reviews_count} {dict.dashboard.patientReviews}</p>
                 <p className="text-sm text-slate-500">{dict.home.testimonials.tag}</p>
               </div>
             </div>

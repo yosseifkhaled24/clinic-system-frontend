@@ -24,3 +24,15 @@ export interface AuthResponse {
   token: string;
   user: AuthUser;
 }
+
+/**
+ * SEC-03: registration no longer issues a token. The response reports
+ * whether the verification email was actually dispatched so the UI can
+ * show an honest state (and offer a resend when it was not).
+ */
+export interface RegisterResponse {
+  message: string;
+  verification_required?: boolean;
+  notification_sent?: boolean;
+  user?: AuthUser;
+}

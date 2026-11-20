@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ApiImage } from "@/components/ui/ApiImage";
 import type { Doctor } from "@/types/doctor";
+import type { Specialty } from "@/types/specialty";
+import { specialtiesService } from "@/services/specialties.service";
 
 interface DoctorFormProps {
   initialData?: Doctor | null;
@@ -19,7 +21,6 @@ export default function DoctorForm({
   onCancel,
 }: DoctorFormProps) {
   const [name, setName] = useState("");
-  const [specialty, setSpecialty] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [bio, setBio] = useState("");
@@ -27,16 +28,63 @@ export default function DoctorForm({
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
 
+  // Specialty selection comes from the database only — no free text.
+  const [specialties, setSpecialties] = useState<Specialty[]>([]);
+  const [specialtyId, setSpecialtyId] = useState("");
+  const [isLoadingSpecialties, setIsLoadingSpecialties] =
+    useState(true);
+  const [specialtiesError, setSpecialtiesError] = useState("");
+
+  useEffect(() => {
+    loadSpecialties();
+  }, []);
+
+  async function loadSpecialties() {
+    try {
+      setIsLoadingSpecialties(true);
+      setSpecialtiesError("");
+
+      const response = await specialtiesService.getAll();
+
+      setSpecialties(response);
+    } catch {
+      setSpecialtiesError(
+        "Failed to load the specialty list. Check your connection and try again."
+      );
+    } finally {
+      setIsLoadingSpecialties(false);
+    }
+  }
+
   useEffect(() => {
     if (!initialData) return;
 
     setName(initialData.name ?? "");
-    setSpecialty(initialData.specialty ?? "");
     setEmail(initialData.email ?? "");
     setPhone(initialData.phone ?? "");
     setBio(initialData.bio ?? "");
     setPreview(initialData.image_url ?? "");
   }, [initialData]);
+
+  // Pre-select the doctor's current specialty once the list is loaded:
+  // prefer the linked id, fall back to matching the legacy string name.
+  // Derived (not an effect) — the explicit user choice always wins.
+  const matchedSpecialty =
+    specialties.length > 0 && initialData
+      ? (initialData.specialty_id != null
+          ? specialties.find(
+              (s) => s.id === initialData.specialty_id
+            )
+          : undefined) ??
+        specialties.find((s) => s.name === initialData.specialty)
+      : undefined;
+
+  const selectedSpecialtyId =
+    specialtyId !== ""
+      ? specialtyId
+      : matchedSpecialty
+      ? String(matchedSpecialty.id)
+      : "";
 
   useEffect(() => {
     if (!image) return;
@@ -47,12 +95,28 @@ export default function DoctorForm({
     return () => URL.revokeObjectURL(objectUrl);
   }, [image]);
 
+  const noSpecialties =
+    !isLoadingSpecialties &&
+    !specialtiesError &&
+    specialties.length === 0;
+
+  const canSubmit =
+    !isSubmitting &&
+    !isLoadingSpecialties &&
+    !specialtiesError &&
+    !noSpecialties &&
+    selectedSpecialtyId !== "";
+
   const handleSubmit = () => {
+    if (!canSubmit) return;
+
     const form = new FormData();
 
     form.append("name", name);
+    // The backend requires a real specialty record id — the free-text
+    // `specialty` field is no longer accepted by the admin API.
+    form.append("specialty_id", selectedSpecialtyId);
 
-    if (specialty) form.append("specialty", specialty);
     if (email) form.append("email", email);
     if (phone) form.append("phone", phone);
     if (bio) form.append("bio", bio);
@@ -150,16 +214,61 @@ export default function DoctorForm({
     <div>
 
       <label className="mb-2 block text-sm font-semibold text-slate-700">
-        Specialty
+        Specialty <span className="text-red-500">*</span>
       </label>
 
-      <input
-        type="text"
-        value={specialty}
-        onChange={(e) => setSpecialty(e.target.value)}
-        placeholder="Cardiology"
-        className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-100"
-      />
+      <select
+        value={selectedSpecialtyId}
+        onChange={(e) => setSpecialtyId(e.target.value)}
+        disabled={
+          isLoadingSpecialties || specialties.length === 0
+        }
+        className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <option value="" disabled>
+          {isLoadingSpecialties
+            ? "Loading specialties..."
+            : "Select a specialty"}
+        </option>
+
+        {specialties.map((specialty) => (
+          <option key={specialty.id} value={specialty.id}>
+            {specialty.name}
+          </option>
+        ))}
+      </select>
+
+      {specialtiesError && (
+        <div className="mt-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+          <p>{specialtiesError}</p>
+
+          <button
+            type="button"
+            onClick={loadSpecialties}
+            className="mt-2 font-semibold underline"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {noSpecialties && (
+        <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+          No specialties exist yet. Create a specialty from the
+          Specialties page first — doctors must be assigned to one.
+        </div>
+      )}
+
+      {initialData &&
+        !isLoadingSpecialties &&
+        !specialtiesError &&
+        !noSpecialties &&
+        selectedSpecialtyId === "" && (
+          <p className="mt-2 text-sm text-amber-600">
+            The doctor&apos;s current specialty was not found in the
+            list — select one to continue.
+          </p>
+        )}
 
     </div>
 
@@ -217,7 +326,7 @@ export default function DoctorForm({
   />
 
   <p className="mt-3 text-sm text-slate-400">
-    This information will appear on the doctor's profile.
+    This information will appear on the doctor&apos;s profile.
   </p>
 
 </div>
@@ -236,7 +345,7 @@ export default function DoctorForm({
 
   <Button
     type="button"
-    disabled={isSubmitting}
+    disabled={!canSubmit}
     onClick={handleSubmit}
     className="px-8 py-3"
   >

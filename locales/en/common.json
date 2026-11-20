@@ -162,7 +162,13 @@
       "submit": "Login",
       "noAccount": "No account yet?",
       "registerLink": "Register",
-      "error": "Unable to sign in. Please check your credentials."
+      "error": "Unable to sign in. Please check your credentials.",
+      "throttle": "Too many attempts. Please wait a minute and try again.",
+      "verifyNotice": "Please verify your email address before signing in. Open the verification link we sent to your inbox, or resend it below.",
+      "resend": "Resend verification email",
+      "resendSent": "If this account is unverified, a new verification email has been sent.",
+      "resendThrottle": "Too many requests. Please wait a minute and try again.",
+      "resendError": "Unable to resend the verification email right now."
     },
     "register": {
       "title": "Create account",
@@ -173,8 +179,65 @@
       "submit": "Register",
       "alreadyRegistered": "Already registered?",
       "loginLink": "Login",
-      "error": "Unable to create account right now."
+      "error": "Unable to create account right now.",
+      "throttle": "Too many accounts have been created from this device. Please wait a minute and try again.",
+      "verifyTitle": "Check your email",
+      "verifyDescription": "Open the verification link in the email to activate your account, then sign in.",
+      "verifySent": "We sent a verification link to",
+      "emailNotSent": "The verification email could not be sent. You can request a new one below once the mail service is available.",
+      "resend": "Resend verification email",
+      "resendSent": "If this account is unverified, a new verification email has been sent.",
+      "resendThrottle": "Too many requests. Please wait a minute and try again.",
+      "resendError": "Unable to resend the verification email right now."
+    },
+    "verifyEmail": {
+      "checking": {
+        "title": "Verifying…",
+        "description": "Please wait while we confirm your email address."
+      },
+      "verified": {
+        "title": "Email verified",
+        "description": "Your email address has been confirmed. You can now sign in to your account."
+      },
+      "expired": {
+        "title": "Link expired",
+        "description": "This verification link has expired. Sign in and we will help you request a new one."
+      },
+      "invalid": {
+        "title": "Invalid link",
+        "description": "This verification link is not valid. Sign in and we will help you request a new one."
+      },
+      "unknown": {
+        "title": "Check your email",
+        "description": "Open the verification link we sent to your inbox to activate your account."
+      },
+      "loginLink": "Go to login",
+      "homeLink": "Back to home"
     }
+  },
+  "payment": {
+    "checking": {
+      "title": "Checking your payment…",
+      "description": "Please wait while we confirm the payment."
+    },
+    "confirmed": {
+      "title": "Payment Successful",
+      "description": "Your payment has been completed successfully."
+    },
+    "pending": {
+      "title": "Payment Pending",
+      "description": "We have not received the final confirmation yet. This page will check again automatically."
+    },
+    "failed": {
+      "title": "Payment Not Completed",
+      "description": "This payment was not completed. If you were charged, please contact the clinic."
+    },
+    "unavailable": {
+      "title": "Unable to Verify Payment",
+      "description": "We could not verify the payment right now. Please try again in a moment."
+    },
+    "refresh": "Check again",
+    "back": "Back to My Account"
   },
   "booking": {
     "title": "Book your appointment",
@@ -192,7 +255,33 @@
     "submit": "Confirm booking",
     "queueMsg": "Your number today is:",
     "success": "Appointment request submitted successfully.",
-    "error": "Unable to submit your appointment."
+    "error": "Unable to submit your appointment.",
+    "specialty": "Specialty",
+    "allSpecialties": "All Specialties",
+    "noDoctorsForSpecialty": "No doctors in this specialty yet.",
+    "workingDays": "Available days",
+    "noWorkingDays": "This doctor has no working days configured.",
+    "slotsLeft": "slots left",
+    "slotLeft": "slot left",
+    "fullyBooked": "Fully booked",
+    "notWorking": "Not working",
+    "selectedDate": "Selected date",
+    "hours": "Working hours",
+    "continue": "Continue",
+    "back": "Back",
+    "confirmTitle": "Confirm your booking",
+    "confirmHint": "Review your appointment details, then confirm.",
+    "refreshAvailability": "Refresh availability",
+    "loginToBook": "Sign in to complete your booking.",
+    "stepSpecialty": "Specialty & Doctor",
+    "stepDate": "Date",
+    "stepDetails": "Visit details",
+    "stepConfirm": "Confirm",
+    "loadError": "Unable to load available dates.",
+    "retry": "Retry",
+    "viewProfile": "View profile",
+    "chooseOneSpecialty": "Choose a specialty to see its doctors.",
+    "bookAnother": "Book another appointment"
   },
   "contact": {
     "title": "Contact us",
@@ -226,7 +315,8 @@
   "reviews": {
     "title": "Patient reviews",
     "description": "See what patients are saying about us.",
-    "noReviews": "No reviews available."
+    "noReviews": "No reviews available.",
+    "anonymous": "Anonymous reviewer"
   },
   "profile": {
     "title": "Profile",
@@ -279,6 +369,10 @@
     "appointments": "Appointments",
     "loading": "Loading...",
     "scheduled": "scheduled",
+    "loadError": "Unable to load the dashboard.",
+    "retry": "Retry",
+    "newAppointmentTitle": "New appointment booked",
+    "newAppointmentBody": "A patient just booked an appointment.",
     "stats": {
       "appointments": "Appointments",
       "patients": "Patients",
@@ -305,6 +399,10 @@
       "title": "Services",
       "description": "Update the services available to patients."
     },
+    "specialties": {
+      "title": "Specialties",
+      "description": "Manage the medical specialties doctors are assigned to."
+    },
     "reviews": {
       "title": "Reviews",
       "description": "Review patient feedback and ratings."
@@ -323,6 +421,32 @@
       "title": "Settings",
       "description": "Adjust account and clinic preferences.",
       "placeholder": "Settings panels will appear here."
+    }
+  },
+  "chatbot": {
+    "title": "Clinic Assistant",
+    "subtitle": "Ask about services, doctors & booking",
+    "open": "Open clinic assistant",
+    "welcome": "Hello! I'm the MediCare clinic assistant. Ask me about our services, doctors, working hours, or how to book an appointment.",
+    "placeholder": "Type your question...",
+    "send": "Send",
+    "newChat": "New chat",
+    "close": "Close",
+    "thinking": "Assistant is typing...",
+    "disclaimer": "Administrative information only — not medical advice.",
+    "emergencyBadge": "Emergency",
+    "retry": "Retry",
+    "suggestions": {
+      "services": "What services are available?",
+      "doctors": "Show me the doctors.",
+      "booking": "How can I book an appointment?",
+      "hours": "What are the working hours?"
+    },
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "rateLimited": "Too many messages — please wait a moment.",
+      "unavailable": "The assistant is temporarily unavailable.",
+      "network": "Network error. Please check your connection."
     }
   }
 }
